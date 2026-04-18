@@ -140,6 +140,7 @@ export default function ReaderClient() {
     const universe = story.universes[universeIndex];
     const newComment: Comment = {
       id: `c-${Date.now()}`,
+      storyId,
       universeId: universe.id,
       episodeIndex,
       author,
@@ -256,27 +257,28 @@ export default function ReaderClient() {
             className="relative w-full flex-shrink-0"
             style={{ height: 320 }}
           >
-            {/* 그라디언트 배경 */}
-            <div
-              className="absolute inset-0"
-              style={{ background: coverGradient }}
+            {/* Picsum 실제 사진 */}
+            <img
+              src={`https://picsum.photos/seed/${story.id}/800/640`}
+              alt={story.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
             />
 
-            {/* 노이즈 텍스처 효과 */}
+            {/* 컬러 오버레이 — 작품 색상과 블렌딩 */}
             <div
-              className="absolute inset-0 opacity-20"
+              className="absolute inset-0"
               style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
-                backgroundSize: "128px 128px",
+                background: `linear-gradient(to bottom, ${story.coverColor}55 0%, transparent 40%, rgba(0,0,0,0.85) 100%)`,
               }}
             />
 
             {/* 하단 페이드 */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
 
             {/* 커버 텍스트 오버레이 */}
             <div className="absolute bottom-8 left-6 right-6">
-              <span className="text-white/40 text-xs tracking-widest uppercase block mb-2">
+              <span className="text-white/50 text-xs tracking-widest uppercase block mb-2">
                 {story.genre}
               </span>
               <h1 className="text-white text-2xl font-bold leading-tight mb-1">

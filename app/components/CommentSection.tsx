@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Comment } from "@/lib/types";
@@ -27,7 +27,6 @@ export default function CommentSection({
   const [text, setText] = useState("");
   const [authorName, setAuthorName] = useState("");
 
-  // 마운트 시 저장된 닉네임 불러오기
   useEffect(() => {
     try {
       const saved = localStorage.getItem(NICKNAME_KEY);
@@ -35,7 +34,6 @@ export default function CommentSection({
     } catch {}
   }, []);
 
-  // 닉네임 변경 시 저장
   const handleAuthorChange = (value: string) => {
     setAuthorName(value);
     try {
@@ -43,8 +41,12 @@ export default function CommentSection({
     } catch {}
   };
 
+  // storyId + universeId + episodeIndex 세 가지 모두 일치하는 댓글만 표시
   const filtered = comments.filter(
-    (c) => c.universeId === universeId && c.episodeIndex === episodeIndex
+    (c) =>
+      c.universeId === universeId &&
+      c.episodeIndex === episodeIndex &&
+      (c as any).storyId === storyId
   );
 
   const best = filtered.filter((c) => c.likes >= 5);
@@ -69,7 +71,6 @@ export default function CommentSection({
         댓글 {filtered.length}
       </p>
 
-      {/* 댓글 입력 */}
       <div className="mb-8">
         <input
           type="text"
@@ -79,7 +80,7 @@ export default function CommentSection({
           className="w-full bg-transparent border-b border-white/10 text-white/60 text-sm py-2 mb-3 outline-none placeholder:text-white/20 focus:border-white/30 transition-colors"
         />
         <textarea
-          placeholder="이 화에 대한 생각을 남겨주세요..."
+          placeholder="이 화에 대한 생각을 남겨보세요..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={3}
@@ -96,7 +97,6 @@ export default function CommentSection({
         </div>
       </div>
 
-      {/* 베스트 댓글 */}
       {sortedBest.length > 0 && (
         <div className="mb-6">
           <p className="text-yellow-400/60 text-xs tracking-widest mb-3">

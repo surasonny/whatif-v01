@@ -26,15 +26,16 @@ export type Story = {
   universes: Universe[]
 }
 
-export type Comment = {
-  id: string
-  universeId: string
-  episodeIndex: number
-  author: string
-  content: string
-  likes: number
-  dislikes: number
-  createdAt: string
+export interface Comment {
+  id: string;
+  storyId: string;
+  universeId: string;
+  episodeIndex: number;
+  author: string;
+  content: string;
+  likes: number;
+  dislikes: number;
+  createdAt: string;
 }
 
 export type AppState = {
