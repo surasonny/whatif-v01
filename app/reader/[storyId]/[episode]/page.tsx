@@ -1,8 +1,9 @@
 "use client";
 
+// app/reader/[storyId]/[episode]/page.tsx
 import dynamic from "next/dynamic";
 
-const HomeFeed = dynamic(() => import("./components/HomeFeed"), {
+const ReaderClient = dynamic(() => import("./ReaderClient"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-screen flex items-center justify-center bg-black">
@@ -11,6 +12,6 @@ const HomeFeed = dynamic(() => import("./components/HomeFeed"), {
   ),
 });
 
-export default function Home() {
-  return <HomeFeed />;
+export default function ReaderPage() {
+  return <ReaderClient />;
 }

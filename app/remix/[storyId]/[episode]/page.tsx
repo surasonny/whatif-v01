@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const HomeFeed = dynamic(() => import("./components/HomeFeed"), {
+const RemixClient = dynamic(() => import("./RemixClient"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-screen flex items-center justify-center bg-black">
@@ -11,6 +11,6 @@ const HomeFeed = dynamic(() => import("./components/HomeFeed"), {
   ),
 });
 
-export default function Home() {
-  return <HomeFeed />;
+export default function RemixPage() {
+  return <RemixClient />;
 }
