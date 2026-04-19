@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { storyTitle, previousEpisodes, currentEpisode, direction } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "API 키가 없습니다" }, { status: 500 });
     }
@@ -31,22 +31,24 @@ ${currentEpisode}
 - 제목 없이 본문만 작성
 - 마크다운 없이 순수 텍스트만`;
 
-    const response = await fetch(
-     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash
-
-:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 1024,
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
           },
-        }),
-      }
-    );
+        ],
+        max_tokens: 1024,
+        temperature: 0.9,
+      }),
+    });
 
     const data = await response.json();
 
@@ -54,7 +56,7 @@ ${currentEpisode}
       return NextResponse.json({ error: data.error.message }, { status: 500 });
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.choices?.[0]?.message?.content || "";
     if (!text) {
       return NextResponse.json({ error: "생성된 내용이 없습니다" }, { status: 500 });
     }
