@@ -7,6 +7,7 @@ import { seedIfEmpty } from "@/lib/seed";
 import { saveState } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
+import UniversePanel from "@/app/components/UniversePanel";
 
 export default function ReaderClient() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function ReaderClient() {
   const [episodeIndex, setEpisodeIndex] = useState(0);
   const [universeIndex, setUniverseIndex] = useState(0);
   const [showSnapshot, setShowSnapshot] = useState(false);
+  const [showUniversePanel, setShowUniversePanel] = useState(false);
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -245,7 +247,12 @@ export default function ReaderClient() {
             <div className="text-white/40 text-xs text-right">
               <p>{episodeIndex + 1} / {totalEpisodes}화</p>
               {totalUniverses > 1 && (
-                <p>U{universeIndex + 1}/{totalUniverses}</p>
+                <button
+                  onClick={() => setShowUniversePanel(true)}
+                  className="text-white/40 text-xs hover:text-white transition-colors"
+                >
+                  U{universeIndex + 1}/{totalUniverses} ▾
+                </button>
               )}
             </div>
             <button
@@ -403,6 +410,34 @@ export default function ReaderClient() {
           universe={universe}
           episode={episode}
           onClose={() => setShowSnapshot(false)}
+        />
+      )}
+
+      {/* 유니버스 패널 */}
+      {showUniversePanel && (
+        <UniversePanel
+          story={story}
+          currentUniverseIndex={universeIndex}
+          onSelect={(i) => setUniverseIndex(i)}
+          onSetMain={(universeId) => {
+            if (!appState) return;
+            const updated: AppState = {
+              ...appState,
+              stories: appState.stories.map((s) => {
+                if (s.id !== storyId) return s;
+                return {
+                  ...s,
+                  universes: s.universes.map((u) => ({
+                    ...u,
+                    isMain: u.id === universeId,
+                  })),
+                };
+              }),
+            };
+            setAppState(updated);
+            saveState(updated);
+          }}
+          onClose={() => setShowUniversePanel(false)}
         />
       )}
     </>
