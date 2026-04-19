@@ -202,6 +202,91 @@ export default function ReaderClient() {
     saveState(updated);
   };
 
+  // 에피소드 삭제
+  const handleDeleteEpisode = () => {
+    if (!appState) return;
+    const story = appState.stories.find((s) => s.id === storyId);
+    if (!story) return;
+
+    const universe = story.universes[universeIndex];
+    if (universe.episodes.length <= 1) {
+      alert("마지막 화는 삭제할 수 없습니다.");
+      return;
+    }
+
+    if (!confirm("이 화를 삭제할까요?")) return;
+
+    const updated: AppState = {
+      ...appState,
+      stories: appState.stories.map((s) => {
+        if (s.id !== storyId) return s;
+        return {
+          ...s,
+          universes: s.universes.map((u, ui) => {
+            if (ui !== universeIndex) return u;
+            return {
+              ...u,
+              episodes: u.episodes.filter((_, ei) => ei !== episodeIndex),
+            };
+          }),
+        };
+      }),
+    };
+    setAppState(updated);
+    saveState(updated);
+    setEpisodeIndex(Math.max(0, episodeIndex - 1));
+  };
+
+  // 리믹스 유니버스 삭제
+  const handleDeleteUniverse = () => {
+    if (!appState) return;
+    const story = appState.stories.find((s) => s.id === storyId);
+    if (!story) return;
+
+    if (universeIndex === 0) {
+      alert("원작 유니버스는 삭제할 수 없습니다.");
+      return;
+    }
+
+    if (!confirm("이 리믹스 유니버스를 삭제할까요?")) return;
+
+    const updated: AppState = {
+      ...appState,
+      stories: appState.stories.map((s) => {
+        if (s.id !== storyId) return s;
+        return {
+          ...s,
+          universes: s.universes.filter((_, ui) => ui !== universeIndex),
+        };
+      }),
+    };
+    setAppState(updated);
+    saveState(updated);
+    setUniverseIndex(0);
+  };
+
+  // 작품 전체 삭제 (리믹스 없을 때만)
+  const handleDeleteStory = () => {
+    if (!appState) return;
+    const story = appState.stories.find((s) => s.id === storyId);
+    if (!story) return;
+
+    if (story.universes.length > 1) {
+      alert("리믹스가 있는 작품은 전체 삭제할 수 없습니다.");
+      return;
+    }
+
+    if (!confirm(`"${story.title}" 작품 전체를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+
+    const updated: AppState = {
+      ...appState,
+      stories: appState.stories.filter((s) => s.id !== storyId),
+    };
+    setAppState(updated);
+    saveState(updated);
+    router.push("/");
+  };
+
   if (!mounted || !appState) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-black">
@@ -258,12 +343,39 @@ export default function ReaderClient() {
               )}
             </div>
             {myNickname && myNickname === story.author && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
+                  className="text-white/30 text-xs hover:text-white transition-colors"
+                  title="원고 수정"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={handleDeleteEpisode}
+                  className="text-white/20 text-xs hover:text-red-400 transition-colors"
+                  title="이 화 삭제"
+                >
+                  🗑
+                </button>
+                {story.universes.length === 1 && (
+                  <button
+                    onClick={handleDeleteStory}
+                    className="text-white/20 text-xs hover:text-red-400 transition-colors"
+                    title="작품 전체 삭제"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+            {myNickname && universeIndex > 0 && myNickname === (universe.episodes[0] as any)?.author && (
               <button
-                onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
-                className="text-white/30 text-xs hover:text-white transition-colors"
-                title="원고 수정"
+                onClick={handleDeleteUniverse}
+                className="text-white/20 text-xs hover:text-red-400 transition-colors"
+                title="이 유니버스 삭제"
               >
-                ✏️
+                🗑
               </button>
             )}
             <button
