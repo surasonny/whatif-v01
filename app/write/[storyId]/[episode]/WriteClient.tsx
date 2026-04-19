@@ -125,6 +125,10 @@ export default function WriteClient() {
         <ImageUploader
           onUpload={(url) => setCoverImageUrl(url)}
           currentImageUrl={coverImageUrl}
+          storyTitle={story?.title}
+          genre={story?.genre}
+          episodeTitle={episode?.title}
+          content={content}
         />
       </div>
 

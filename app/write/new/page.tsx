@@ -232,6 +232,10 @@ export default function NewStoryPage() {
         <ImageUploader
           onUpload={(url) => setCoverImageUrl(url)}
           currentImageUrl={coverImageUrl}
+          storyTitle={title}
+          genre={genre}
+          episodeTitle={`${title} 1화`}
+          content={content}
         />
       </div>
 
