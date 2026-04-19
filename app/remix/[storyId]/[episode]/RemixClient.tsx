@@ -16,9 +16,12 @@ export default function RemixClient() {
 
   const [appState, setAppState] = useState<AppState | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // 단계: "input" → "generating" → "edit" → "done"
+  const [step, setStep] = useState<"input" | "generating" | "edit" | "done">("input");
+  const [direction, setDirection] = useState("");
   const [remixText, setRemixText] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [newUniverseId, setNewUniverseId] = useState<string>("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -47,7 +50,6 @@ export default function RemixClient() {
   const mainUniverse: Universe = story.universes[0];
   const episode: Episode | undefined = mainUniverse.episodes[episodeIndex];
 
-  // 리믹스 가능 여부 체크
   if (!episode || !episode.remixAllowed) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8">
@@ -63,37 +65,82 @@ export default function RemixClient() {
     );
   }
 
-  if (submitted) {
-    return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8">
-        <p className="text-white text-lg font-semibold mb-3">새 유니버스가 생성되었습니다.</p>
-        <p className="text-white/40 text-sm mb-10">
-          Reader에서 위/아래 스와이프로 확인할 수 있습니다.
-        </p>
-        <button
-          onClick={() => router.push(`/reader/${storyId}/${episodeIndex}`)}
-          className="px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 active:scale-95 transition-all"
-        >
-          Reader에서 확인하기
-        </button>
-      </div>
-    );
-  }
+  // 이전 화들 내용 요약 (컨텍스트용)
+  const previousEpisodes = mainUniverse.episodes
+    .slice(0, episodeIndex)
+    .map((ep) => `[${ep.title}]\n${ep.content}`)
+    .join("\n\n");
+
+  const handleGenerate = async () => {
+    if (!direction.trim()) return;
+    setStep("generating");
+    setError("");
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: `너는 웹소설 작가다. 아래는 "${story.title}"이라는 작품의 내용이다.
+
+## 이전 화 내용
+${previousEpisodes}
+
+## 현재 화 (${episode.title}) 원본
+${episode.content}
+
+## 리믹스 방향
+사용자가 원하는 새로운 방향: "${direction}"
+
+## 요청
+위 리믹스 방향을 바탕으로 현재 화를 완전히 새롭게 작성해줘.
+조건:
+- 웹소설 스타일로 자연스럽게
+- 이전 화의 흐름과 등장인물을 유지
+- 리믹스 방향을 반영해서 원본과 다른 전개
+- 분량은 500~800자 내외
+- 제목 없이 본문만 작성
+- 마크다운 없이 순수 텍스트만`,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error.message || "AI 생성 실패");
+      }
+
+      const generated = data.content?.[0]?.text || "";
+      if (!generated) throw new Error("생성된 내용이 없습니다");
+
+      setRemixText(generated);
+      setStep("edit");
+    } catch (e: any) {
+      setError(e.message || "오류가 발생했습니다. 다시 시도해주세요.");
+      setStep("input");
+    }
+  };
 
   const handleSubmit = () => {
     if (!remixText.trim() || !appState) return;
 
-    // 현재 유니버스 개수로 새 ID 생성
     const existingCount = story.universes.length;
     const newId = `u${existingCount + 1}`;
     const newLabel = `리믹스 #${existingCount}`;
 
-    // 원작에서 분기 지점까지의 에피소드 복사
     const inheritedEpisodes: Episode[] = mainUniverse.episodes
       .slice(0, episodeIndex)
       .map((ep) => ({ ...ep }));
 
-    // 리믹스 에피소드 추가
     const remixEpisode: Episode = {
       index: episodeIndex,
       title: `${episodeIndex + 1}화 — 리믹스`,
@@ -111,7 +158,6 @@ export default function RemixClient() {
       episodes: [...inheritedEpisodes, remixEpisode],
     };
 
-    // appState 업데이트
     const updated: AppState = {
       ...appState,
       stories: appState.stories.map((s) => {
@@ -125,15 +171,81 @@ export default function RemixClient() {
 
     saveState(updated);
     setAppState(updated);
-    setNewUniverseId(newId);
-    setSubmitted(true);
+    setStep("done");
   };
 
-  const totalUniverses = story.universes.length;
+  // 완료 화면
+  if (step === "done") {
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8">
+        <p className="text-white text-lg font-semibold mb-3">새 유니버스가 생성되었습니다.</p>
+        <p className="text-white/40 text-sm mb-10">
+          Reader에서 유니버스 버튼으로 확인할 수 있습니다.
+        </p>
+        <button
+          onClick={() => router.push(`/reader/${storyId}/${episodeIndex}`)}
+          className="px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 active:scale-95 transition-all"
+        >
+          Reader에서 확인하기
+        </button>
+      </div>
+    );
+  }
 
+  // 생성 중 화면
+  if (step === "generating") {
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8 gap-6">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <p className="text-white/60 text-sm">AI가 새로운 이야기를 쓰고 있습니다...</p>
+        <p className="text-white/30 text-xs">"{direction}"</p>
+      </div>
+    );
+  }
+
+  // 수정 화면
+  if (step === "edit") {
+    return (
+      <div className="w-full min-h-screen bg-black text-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <button
+            onClick={() => setStep("input")}
+            className="text-white/50 text-sm hover:text-white transition-colors"
+          >
+            ← 다시 생성
+          </button>
+          <p className="text-white/80 text-sm font-medium">AI 초안 검토</p>
+          <button
+            onClick={handleSubmit}
+            disabled={!remixText.trim()}
+            className="text-sm font-semibold text-white disabled:text-white/20"
+          >
+            등록
+          </button>
+        </div>
+
+        <div className="px-6 py-4 border-b border-white/10">
+          <p className="text-white/30 text-xs">방향: "{direction}"</p>
+        </div>
+
+        <div className="px-6 py-6">
+          <p className="text-white/40 text-xs mb-3 tracking-wide">
+            내용을 자유롭게 수정한 뒤 등록하세요.
+          </p>
+          <textarea
+            className="w-full bg-transparent text-white/90 text-base leading-8 resize-none outline-none"
+            rows={20}
+            value={remixText}
+            onChange={(e) => setRemixText(e.target.value)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 방향 입력 화면 (기본)
   return (
     <div className="w-full min-h-screen bg-black text-white">
-      {/* 상단 바 */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
         <button
           onClick={() => router.push(`/reader/${storyId}/${episodeIndex}`)}
@@ -141,20 +253,11 @@ export default function RemixClient() {
         >
           ← 취소
         </button>
-        <div className="text-center">
-          <p className="text-white/80 text-sm font-medium">리믹스 작성</p>
-          <p className="text-white/30 text-xs">{episode.title}</p>
-        </div>
-        <button
-          onClick={handleSubmit}
-          disabled={!remixText.trim()}
-          className="text-sm font-semibold text-white disabled:text-white/20 hover:text-white/70 transition-colors"
-        >
-          등록
-        </button>
+        <p className="text-white/80 text-sm font-medium">리믹스</p>
+        <div className="w-8" />
       </div>
 
-      {/* 원본 에피소드 요약 */}
+      {/* 원본 요약 */}
       <div className="px-6 py-5 border-b border-white/10">
         <p className="text-white/30 text-xs mb-1">
           {story.title} — {episode.title}
@@ -162,24 +265,37 @@ export default function RemixClient() {
         <p className="text-white/50 text-sm leading-relaxed line-clamp-3">
           {episode.content.slice(0, 120)}...
         </p>
-        <p className="text-white/20 text-xs mt-3">
-          현재 유니버스 {totalUniverses}개 · 새 유니버스 u{totalUniverses + 1} 생성 예정
-        </p>
       </div>
 
-      {/* 리믹스 입력 */}
-      <div className="px-6 py-6">
-        <p className="text-white/40 text-xs mb-3 tracking-wide">
-          이 화에서 이야기가 달라진다면?
+      {/* 방향 입력 */}
+      <div className="px-6 py-8">
+        <p className="text-white text-base font-medium mb-2">
+          이 화에서 이야기가 어떻게 달라지면 좋겠어?
         </p>
+        <p className="text-white/30 text-xs mb-6">
+          짧게 방향만 써줘도 돼. AI가 웹소설로 써줄게.
+        </p>
+
         <textarea
-          className="w-full bg-transparent text-white/90 text-base leading-8 resize-none outline-none placeholder:text-white/20"
-          rows={20}
-          placeholder="여기서부터 새로운 유니버스가 시작됩니다..."
-          value={remixText}
-          onChange={(e) => setRemixText(e.target.value)}
+          className="w-full bg-white/5 rounded-xl text-white/90 text-base leading-7 p-4 outline-none resize-none placeholder:text-white/20 focus:bg-white/8 transition-colors"
+          rows={4}
+          placeholder={`예: 하은이 신호를 무시하고 혼자 화성으로 떠난다\n예: 민준이 사실 신호의 발신자였다는 게 밝혀진다`}
+          value={direction}
+          onChange={(e) => setDirection(e.target.value)}
           autoFocus
         />
+
+        {error && (
+          <p className="text-red-400/70 text-xs mt-3">{error}</p>
+        )}
+
+        <button
+          onClick={handleGenerate}
+          disabled={!direction.trim()}
+          className="w-full mt-6 py-4 rounded-2xl bg-white text-black font-semibold text-base disabled:opacity-30 hover:bg-white/90 active:scale-95 transition-all"
+        >
+          ✦ AI로 초안 생성
+        </button>
       </div>
     </div>
   );
