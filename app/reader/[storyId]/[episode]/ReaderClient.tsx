@@ -280,12 +280,21 @@ export default function ReaderClient() {
 
           {/* 커버 이미지 */}
           <div className="relative w-full" style={{ height: 320 }}>
-            <img
-              src={(episode as any).coverImageUrl || `https://picsum.photos/seed/${story.id}/800/640`}
-              alt={story.title}
-              className="absolute inset-0 w-full h-full object-cover"
-              draggable={false}
-            />
+            {(episode as any).coverImageUrl ? (
+              <img
+                src={(episode as any).coverImageUrl}
+                alt={story.title}
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : (
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
+                }}
+              />
+            )}
             <div
               className="absolute inset-0"
               style={{

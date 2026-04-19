@@ -27,6 +27,9 @@ export default function NewStoryPage() {
   // 1화 내용
   const [content, setContent] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [aiDirection, setAiDirection] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAiInput, setShowAiInput] = useState(false);
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -42,6 +45,32 @@ export default function NewStoryPage() {
       </div>
     );
   }
+
+  const handleAiGenerate = async () => {
+    if (!aiDirection.trim()) return;
+    setAiLoading(true);
+    try {
+      const response = await fetch("/api/remix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storyTitle: title,
+          previousEpisodes: "",
+          currentEpisode: "",
+          direction: aiDirection,
+        }),
+      });
+      const data = await response.json();
+      if (data.text) {
+        setContent(data.text);
+        setShowAiInput(false);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleCreate = () => {
     if (!title.trim() || !content.trim() || !appState) return;
@@ -204,6 +233,47 @@ export default function NewStoryPage() {
           onUpload={(url) => setCoverImageUrl(url)}
           currentImageUrl={coverImageUrl}
         />
+      </div>
+
+      {/* AI 초안 생성 */}
+      <div className="px-6 py-4 border-b border-white/10">
+        {!showAiInput ? (
+          <button
+            onClick={() => setShowAiInput(true)}
+            className="w-full py-3 rounded-xl border border-white/20 text-white/50 text-sm font-medium hover:border-white/40 hover:text-white/80 transition-all"
+          >
+            ✦ AI로 1화 초안 생성
+          </button>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-white/40 text-xs tracking-wide">
+              어떤 이야기를 쓰고 싶어? 방향만 알려줘.
+            </p>
+            <textarea
+              className="w-full bg-white/5 rounded-xl text-white/90 text-sm leading-7 p-4 outline-none resize-none placeholder:text-white/20 border border-white/10 focus:border-white/30 transition-colors"
+              rows={3}
+              placeholder="예: 2047년 우주 통신 기지에서 일하는 여성이 미스터리한 신호를 받는다"
+              value={aiDirection}
+              onChange={(e) => setAiDirection(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowAiInput(false)}
+                className="flex-1 py-3 rounded-xl border border-white/10 text-white/30 text-sm hover:text-white/60 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleAiGenerate}
+                disabled={!aiDirection.trim() || aiLoading}
+                className="flex-1 py-3 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-30 hover:bg-white/90 active:scale-95 transition-all"
+              >
+                {aiLoading ? "생성 중..." : "생성"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 본문 */}
