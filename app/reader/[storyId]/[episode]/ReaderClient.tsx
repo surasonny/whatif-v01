@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode, Comment } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
-import { saveState } from "@/lib/store";
+import { saveState, loadState, deleteEpisode, deleteStory } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
 import UniversePanel from "@/app/components/UniversePanel";
@@ -39,12 +39,10 @@ export default function ReaderClient() {
 
     let startX = 0;
     let startY = 0;
-    let moved = false;
 
     const onTouchStart = (e: TouchEvent) => {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      moved = false;
     };
 
     const onTouchEnd = (e: TouchEvent) => {
@@ -55,7 +53,6 @@ export default function ReaderClient() {
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      // 수평이 수직보다 크고 40px 이상일 때만 회차 이동
       if (absX > absY && absX > 40) {
         const currentUniverse = story.universes[universeIndex];
         const maxEpisode = currentUniverse.episodes.length - 1;
@@ -67,11 +64,9 @@ export default function ReaderClient() {
       }
     };
 
-    // PC 마우스용
     const onMouseDown = (e: MouseEvent) => {
       startX = e.clientX;
       startY = e.clientY;
-      moved = false;
     };
 
     const onMouseUp = (e: MouseEvent) => {
@@ -103,6 +98,11 @@ export default function ReaderClient() {
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [appState, storyId, universeIndex]);
+
+  function reloadState() {
+    const fresh = loadState();
+    if (fresh) setAppState(fresh);
+  }
 
   const handleLike = () => {
     if (!appState) return;
@@ -202,89 +202,41 @@ export default function ReaderClient() {
     saveState(updated);
   };
 
-  // 에피소드 삭제
   const handleDeleteEpisode = () => {
     if (!appState) return;
     const story = appState.stories.find((s) => s.id === storyId);
     if (!story) return;
-
     const universe = story.universes[universeIndex];
-    if (universe.episodes.length <= 1) {
-      alert("마지막 화는 삭제할 수 없습니다.");
-      return;
-    }
 
     if (!confirm("이 화를 삭제할까요?")) return;
 
-    const updated: AppState = {
-      ...appState,
-      stories: appState.stories.map((s) => {
-        if (s.id !== storyId) return s;
-        return {
-          ...s,
-          universes: s.universes.map((u, ui) => {
-            if (ui !== universeIndex) return u;
-            return {
-              ...u,
-              episodes: u.episodes.filter((_, ei) => ei !== episodeIndex),
-            };
-          }),
-        };
-      }),
-    };
-    setAppState(updated);
-    saveState(updated);
+    const result = deleteEpisode(storyId, universe.id, episodeIndex);
+    if (!result.ok) {
+      alert(result.reason ?? "삭제할 수 없습니다.");
+      return;
+    }
+    reloadState();
     setEpisodeIndex(Math.max(0, episodeIndex - 1));
   };
 
-  // 리믹스 유니버스 삭제
-  const handleDeleteUniverse = () => {
-    if (!appState) return;
-    const story = appState.stories.find((s) => s.id === storyId);
-    if (!story) return;
-
-    if (universeIndex === 0) {
-      alert("원작 유니버스는 삭제할 수 없습니다.");
-      return;
-    }
-
-    if (!confirm("이 리믹스 유니버스를 삭제할까요?")) return;
-
-    const updated: AppState = {
-      ...appState,
-      stories: appState.stories.map((s) => {
-        if (s.id !== storyId) return s;
-        return {
-          ...s,
-          universes: s.universes.filter((_, ui) => ui !== universeIndex),
-        };
-      }),
-    };
-    setAppState(updated);
-    saveState(updated);
-    setUniverseIndex(0);
-  };
-
-  // 작품 전체 삭제 (리믹스 없을 때만)
   const handleDeleteStory = () => {
     if (!appState) return;
     const story = appState.stories.find((s) => s.id === storyId);
     if (!story) return;
 
-    if (story.universes.length > 1) {
-      alert("리믹스가 있는 작품은 전체 삭제할 수 없습니다.");
-      return;
-    }
-
     if (!confirm(`"${story.title}" 작품 전체를 삭제할까요? 되돌릴 수 없습니다.`)) return;
 
-    const updated: AppState = {
-      ...appState,
-      stories: appState.stories.filter((s) => s.id !== storyId),
-    };
-    setAppState(updated);
-    saveState(updated);
+    const result = deleteStory(storyId);
+    if (!result.ok) {
+      alert(result.reason ?? "삭제할 수 없습니다.");
+      return;
+    }
     router.push("/");
+  };
+
+  const handleUniverseDeleted = () => {
+    reloadState();
+    setUniverseIndex(0);
   };
 
   if (!mounted || !appState) {
@@ -310,15 +262,12 @@ export default function ReaderClient() {
   const totalEpisodes = universe.episodes.length;
   const totalUniverses = story.universes.length;
   const canRemix = episode.remixAllowed;
+  const isMyStory = myNickname && myNickname === story.author;
 
   return (
     <>
-      <div
-        className="w-full bg-black flex flex-col"
-        style={{ height: "100dvh" }}
-      >
+      <div className="w-full bg-black flex flex-col" style={{ height: "100dvh" }}>
 
-        {/* 상단 바 — 고정 */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 z-20">
           <button
             onClick={() => router.push("/")}
@@ -342,7 +291,8 @@ export default function ReaderClient() {
                 </button>
               )}
             </div>
-            {myNickname && myNickname === story.author && (
+
+            {isMyStory && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
@@ -358,7 +308,7 @@ export default function ReaderClient() {
                 >
                   🗑
                 </button>
-                {story.universes.length === 1 && (
+                {totalUniverses === 1 && (
                   <button
                     onClick={handleDeleteStory}
                     className="text-white/20 text-xs hover:text-red-400 transition-colors"
@@ -369,15 +319,7 @@ export default function ReaderClient() {
                 )}
               </div>
             )}
-            {myNickname && universeIndex > 0 && myNickname === (universe.episodes[0] as any)?.author && (
-              <button
-                onClick={handleDeleteUniverse}
-                className="text-white/20 text-xs hover:text-red-400 transition-colors"
-                title="이 유니버스 삭제"
-              >
-                🗑
-              </button>
-            )}
+
             <button
               onClick={() => setShowSnapshot(true)}
               className="text-white/30 text-base hover:text-white transition-colors"
@@ -387,10 +329,8 @@ export default function ReaderClient() {
           </div>
         </div>
 
-        {/* 스크롤 영역 */}
         <div className="flex-1 overflow-y-auto">
 
-          {/* 커버 이미지 */}
           <div className="relative w-full" style={{ height: 320 }}>
             {(episode as any).coverImageUrl ? (
               <img
@@ -427,14 +367,12 @@ export default function ReaderClient() {
             </div>
           </div>
 
-          {/* 본문 */}
           <div className="px-6 pb-8">
             <div className="max-w-prose mx-auto">
               <div className="text-white/90 text-base leading-8 whitespace-pre-wrap pt-6">
                 {episode.content}
               </div>
 
-              {/* 좋아요/싫어요 */}
               <div className="mt-12 mb-4 flex items-center gap-4">
                 <button
                   onClick={handleLike}
@@ -452,7 +390,6 @@ export default function ReaderClient() {
                 </button>
               </div>
 
-              {/* 리믹스 버튼 */}
               {canRemix && (
                 <div className="mt-4 mb-8">
                   <button
@@ -464,7 +401,6 @@ export default function ReaderClient() {
                 </div>
               )}
 
-              {/* 댓글 */}
               <CommentSection
                 comments={appState.comments}
                 storyId={storyId}
@@ -478,7 +414,6 @@ export default function ReaderClient() {
           </div>
         </div>
 
-        {/* 하단 바 — 고정 */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-t border-white/10 bg-black z-20">
           <button
             onClick={() => setEpisodeIndex((prev) => Math.max(prev - 1, 0))}
@@ -488,7 +423,6 @@ export default function ReaderClient() {
             ← 이전 화
           </button>
 
-          {/* 유니버스 전환 버튼 */}
           {totalUniverses > 1 && (
             <div className="flex items-center gap-2">
               <button
@@ -511,7 +445,6 @@ export default function ReaderClient() {
             </div>
           )}
 
-          {/* 회차 인디케이터 */}
           {totalUniverses === 1 && (
             <div className="flex gap-1">
               {universe.episodes.map((_, i) => (
@@ -535,7 +468,6 @@ export default function ReaderClient() {
         </div>
       </div>
 
-      {/* 스냅샷 팝업 */}
       {showSnapshot && (
         <SnapshotCard
           story={story}
@@ -545,7 +477,6 @@ export default function ReaderClient() {
         />
       )}
 
-      {/* 유니버스 패널 */}
       {showUniversePanel && (
         <UniversePanel
           story={story}
@@ -570,6 +501,7 @@ export default function ReaderClient() {
             saveState(updated);
           }}
           onClose={() => setShowUniversePanel(false)}
+          onUniverseDeleted={handleUniverseDeleted}
         />
       )}
     </>
