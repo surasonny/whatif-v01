@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
+// 안전하지 않은 표현을 프롬프트에서 제거
+function sanitizeForImage(text: string): string {
+  return text
+    .replace(/위협|협박|폭력|살인|죽|피|잔혹|공포|납치|폭행|칼|총|무기|범죄|악당/g, "")
+    .replace(/위험한|잔인한|무서운|끔찍한/g, "긴장된")
+    .slice(0, 200)
+    .trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { storyTitle, genre, episodeTitle, content } = await req.json();
@@ -13,30 +22,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 본문에서 핵심 장면 추출 (앞 500자)
-    const excerpt = (content ?? "").slice(0, 500).trim();
-
-    // 장르별 스타일 힌트
-    const genreStyle: Record<string, string> = {
-      "SF": "futuristic sci-fi setting, space station or high-tech environment, cool blue tones",
-      "판타지": "fantasy world, magical atmosphere, mystical forest or ancient ruins, warm golden tones",
-      "로맨스": "romantic urban setting, Seoul cityscape, soft warm lighting, emotional close-up",
-      "일상": "everyday Korean life, apartment or convenience store, realistic warm tones, slice of life",
-      "드라마": "dramatic Korean drama scene, intense emotions, cinematic lighting",
-      "스릴러": "dark thriller atmosphere, shadows and tension, cold desaturated tones",
+    // 장르별 시각적 스타일 (본문 내용 대신 장르로 분위기 결정)
+    const genreVisual: Record<string, string> = {
+      "SF": "two people in a futuristic space station corridor, cool blue neon lighting, high-tech panels on walls, tense atmosphere",
+      "판타지": "a person standing in a magical glowing forest at night, mystical fireflies, ancient stone ruins, golden warm light",
+      "로맨스": "two people in a Seoul cafe at night, warm street lights through window, emotional moment, soft bokeh background",
+      "일상": "interior of a small Korean apartment room at night, warm lamp light, simple furniture, quiet contemplative mood",
+      "드라마": "a person standing alone on a Seoul rooftop at sunset, city skyline in background, dramatic sky, emotional silhouette",
+      "스릴러": "a dimly lit urban alley at night, long shadows, mysterious figure in distance, tense cinematic composition",
+      "미스터리": "a mysterious room with scattered documents and dim light, noir atmosphere, dust particles in light beam",
     };
 
-    const styleHint = genreStyle[genre ?? ""] ?? "cinematic Korean webtoon scene";
+    const safeTitle = sanitizeForImage(storyTitle ?? "");
+    const visualScene = genreVisual[genre ?? ""] ??
+      "two characters in a dramatic moment, cinematic Korean webtoon scene, detailed urban background";
 
-    const imagePrompt = `Korean webtoon illustration style, manhwa art, clean line art, professional comic book quality.
-
-Scene context: "${excerpt}"
-
-Story: "${storyTitle}", Genre: ${genre}
-Episode: "${episodeTitle}"
-
-Visual style: ${styleHint}
-Requirements: webtoon panel composition, expressive character emotions, detailed background, dramatic lighting effect, no text overlay, no speech bubbles, no watermark.`;
+    const imagePrompt = `Korean webtoon illustration, manhwa art style, professional comic panel.
+Scene: ${visualScene}.
+Story mood from "${safeTitle}".
+Style: clean line art, vibrant colors, expressive faces, detailed background, dramatic lighting, no text, no speech bubbles, no watermark, safe for all audiences.`;
 
     const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
