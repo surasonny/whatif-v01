@@ -261,6 +261,13 @@ export default function ReaderClient() {
             >
               📸
             </button>
+            <button
+              onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
+              className="text-white/30 text-xs hover:text-white transition-colors"
+              title="원고 수정"
+            >
+              ✏️
+            </button>
           </div>
         </div>
 
@@ -270,7 +277,7 @@ export default function ReaderClient() {
           {/* 커버 이미지 */}
           <div className="relative w-full" style={{ height: 320 }}>
             <img
-              src={`https://picsum.photos/seed/${story.id}/800/640`}
+              src={(episode as any).coverImageUrl || `https://picsum.photos/seed/${story.id}/800/640`}
               alt={story.title}
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}

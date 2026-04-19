@@ -86,7 +86,7 @@ export default function HomeFeed() {
       {/* 배경 이미지 */}
       <img
         key={story.id}
-        src={`https://picsum.photos/seed/${story.id}-home/800/1200`}
+        src={(story.universes[0]?.episodes[0] as any)?.coverImageUrl || `https://picsum.photos/seed/${story.id}-home/800/1200`}
         alt={story.title}
         onLoad={() => setImgLoaded(true)}
         className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
