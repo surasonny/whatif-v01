@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
 import { saveState } from "@/lib/store";
+import ImageUploader from "@/app/components/ImageUploader";
 
 export default function RemixClient() {
   const params = useParams();
@@ -16,11 +17,10 @@ export default function RemixClient() {
 
   const [appState, setAppState] = useState<AppState | null>(null);
   const [mounted, setMounted] = useState(false);
-
-  // 단계: "input" → "generating" → "edit" → "done"
   const [step, setStep] = useState<"input" | "generating" | "edit" | "done">("input");
   const [direction, setDirection] = useState("");
   const [remixText, setRemixText] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -65,7 +65,6 @@ export default function RemixClient() {
     );
   }
 
-  // 이전 화들 내용 요약 (컨텍스트용)
   const previousEpisodes = mainUniverse.episodes
     .slice(0, episodeIndex)
     .map((ep) => `[${ep.title}]\n${ep.content}`)
@@ -89,11 +88,7 @@ export default function RemixClient() {
       });
 
       const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
+      if (data.error) throw new Error(data.error);
       if (!data.text) throw new Error("생성된 내용이 없습니다");
 
       setRemixText(data.text);
@@ -122,7 +117,8 @@ export default function RemixClient() {
       likes: 0,
       dislikes: 0,
       remixAllowed: true,
-    };
+      coverImageUrl: coverImageUrl || undefined,
+    } as any;
 
     const newUniverse: Universe = {
       id: newId,
@@ -148,7 +144,6 @@ export default function RemixClient() {
     setStep("done");
   };
 
-  // 완료 화면
   if (step === "done") {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8">
@@ -166,7 +161,6 @@ export default function RemixClient() {
     );
   }
 
-  // 생성 중 화면
   if (step === "generating") {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8 gap-6">
@@ -177,7 +171,6 @@ export default function RemixClient() {
     );
   }
 
-  // 수정 화면
   if (step === "edit") {
     return (
       <div className="w-full min-h-screen bg-black text-white">
@@ -202,6 +195,17 @@ export default function RemixClient() {
           <p className="text-white/30 text-xs">방향: "{direction}"</p>
         </div>
 
+        {/* 커버 이미지 업로드 */}
+        <div className="px-6 py-5 border-b border-white/10">
+          <p className="text-white/40 text-xs mb-3 tracking-wide">
+            커버 이미지 (선택)
+          </p>
+          <ImageUploader
+            onUpload={(url) => setCoverImageUrl(url)}
+            currentImageUrl={coverImageUrl}
+          />
+        </div>
+
         <div className="px-6 py-6">
           <p className="text-white/40 text-xs mb-3 tracking-wide">
             내용을 자유롭게 수정한 뒤 등록하세요.
@@ -217,7 +221,6 @@ export default function RemixClient() {
     );
   }
 
-  // 방향 입력 화면 (기본)
   return (
     <div className="w-full min-h-screen bg-black text-white">
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
@@ -231,7 +234,6 @@ export default function RemixClient() {
         <div className="w-8" />
       </div>
 
-      {/* 원본 요약 */}
       <div className="px-6 py-5 border-b border-white/10">
         <p className="text-white/30 text-xs mb-1">
           {story.title} — {episode.title}
@@ -241,7 +243,6 @@ export default function RemixClient() {
         </p>
       </div>
 
-      {/* 방향 입력 */}
       <div className="px-6 py-8">
         <p className="text-white text-base font-medium mb-2">
           이 화에서 이야기가 어떻게 달라지면 좋겠어?
