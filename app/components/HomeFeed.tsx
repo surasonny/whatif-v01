@@ -160,7 +160,7 @@ export default function HomeFeed() {
               1화부터 읽기
             </button>
             <button
-              onClick={() => router.push("/write/new/0")}
+              onClick={() => router.push("/write/new")}
               className="px-5 py-4 rounded-2xl border border-white/20 text-white/60 text-sm font-medium hover:border-white/50 hover:text-white active:scale-95 transition-all"
             >
               ✍️ 새 작품
