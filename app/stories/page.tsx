@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppState, Story } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
-import AuthorModeToggle from "@/app/components/AuthorModeToggle";
 
 export default function StoriesPage() {
   const router = useRouter();
@@ -36,7 +35,7 @@ export default function StoriesPage() {
           ← 홈
         </button>
         <p className="text-white/80 text-sm font-medium">전체 작품</p>
-        <AuthorModeToggle />
+        <div className="w-8" />
       </div>
 
       {/* 작품 목록 */}

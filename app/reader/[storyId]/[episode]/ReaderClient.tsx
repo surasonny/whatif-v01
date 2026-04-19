@@ -8,7 +8,7 @@ import { saveState } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
 import UniversePanel from "@/app/components/UniversePanel";
-import { useAuthorMode } from "@/app/components/AuthorModeToggle";
+import { useMyNickname } from "@/app/components/AuthorModeToggle";
 
 export default function ReaderClient() {
   const params = useParams();
@@ -23,7 +23,7 @@ export default function ReaderClient() {
   const [universeIndex, setUniverseIndex] = useState(0);
   const [showSnapshot, setShowSnapshot] = useState(false);
   const [showUniversePanel, setShowUniversePanel] = useState(false);
-  const { isAuthorMode } = useAuthorMode();
+  const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -257,7 +257,7 @@ export default function ReaderClient() {
                 </button>
               )}
             </div>
-            {isAuthorMode && (
+            {myNickname && myNickname === story.author && (
               <button
                 onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
                 className="text-white/30 text-xs hover:text-white transition-colors"
