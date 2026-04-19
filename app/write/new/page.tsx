@@ -55,8 +55,8 @@ export default function NewStoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitle: title,
-          previousEpisodes: "",
-          currentEpisode: "",
+          previousEpisodes: hook ? `작품 소개: ${hook}` : "",
+          currentEpisode: hook ? `이 작품의 핵심 한 줄: "${hook}"` : "",
           direction: aiDirection,
         }),
       });
