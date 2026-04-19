@@ -256,17 +256,17 @@ export default function ReaderClient() {
               )}
             </div>
             <button
-              onClick={() => setShowSnapshot(true)}
-              className="text-white/30 text-base hover:text-white transition-colors"
-            >
-              📸
-            </button>
-            <button
               onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
               className="text-white/30 text-xs hover:text-white transition-colors"
               title="원고 수정"
             >
               ✏️
+            </button>
+            <button
+              onClick={() => setShowSnapshot(true)}
+              className="text-white/30 text-base hover:text-white transition-colors"
+            >
+              📸
             </button>
           </div>
         </div>
