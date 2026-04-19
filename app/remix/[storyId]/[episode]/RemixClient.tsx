@@ -77,52 +77,26 @@ export default function RemixClient() {
     setError("");
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/remix", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            {
-              role: "user",
-              content: `너는 웹소설 작가다. 아래는 "${story.title}"이라는 작품의 내용이다.
-
-## 이전 화 내용
-${previousEpisodes}
-
-## 현재 화 (${episode.title}) 원본
-${episode.content}
-
-## 리믹스 방향
-사용자가 원하는 새로운 방향: "${direction}"
-
-## 요청
-위 리믹스 방향을 바탕으로 현재 화를 완전히 새롭게 작성해줘.
-조건:
-- 웹소설 스타일로 자연스럽게
-- 이전 화의 흐름과 등장인물을 유지
-- 리믹스 방향을 반영해서 원본과 다른 전개
-- 분량은 500~800자 내외
-- 제목 없이 본문만 작성
-- 마크다운 없이 순수 텍스트만`,
-            },
-          ],
+          storyTitle: story.title,
+          previousEpisodes,
+          currentEpisode: episode.content,
+          direction,
         }),
       });
 
       const data = await response.json();
 
       if (data.error) {
-        throw new Error(data.error.message || "AI 생성 실패");
+        throw new Error(data.error);
       }
 
-      const generated = data.content?.[0]?.text || "";
-      if (!generated) throw new Error("생성된 내용이 없습니다");
+      if (!data.text) throw new Error("생성된 내용이 없습니다");
 
-      setRemixText(generated);
+      setRemixText(data.text);
       setStep("edit");
     } catch (e: any) {
       setError(e.message || "오류가 발생했습니다. 다시 시도해주세요.");
