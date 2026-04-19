@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
+import { saveState } from "@/lib/store";
 
 export default function RemixClient() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function RemixClient() {
   const [mounted, setMounted] = useState(false);
   const [remixText, setRemixText] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [newUniverseId, setNewUniverseId] = useState<string>("");
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -64,24 +66,70 @@ export default function RemixClient() {
   if (submitted) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-black px-8">
-        <p className="text-white text-lg font-semibold mb-3">리믹스가 등록되었습니다.</p>
-        <p className="text-white/40 text-sm mb-8">새로운 유니버스가 시작되었습니다.</p>
+        <p className="text-white text-lg font-semibold mb-3">새 유니버스가 생성되었습니다.</p>
+        <p className="text-white/40 text-sm mb-10">
+          Reader에서 위/아래 스와이프로 확인할 수 있습니다.
+        </p>
         <button
           onClick={() => router.push(`/reader/${storyId}/${episodeIndex}`)}
-          className="text-white/50 text-sm hover:text-white transition-colors"
+          className="px-6 py-3 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 active:scale-95 transition-all"
         >
-          ← 읽기로 돌아가기
+          Reader에서 확인하기
         </button>
       </div>
     );
   }
 
   const handleSubmit = () => {
-    if (!remixText.trim()) return;
-    // MVP: 실제 저장 없이 제출 완료 화면만 보여줌
-    // 추후 saveState로 확장 가능
+    if (!remixText.trim() || !appState) return;
+
+    // 현재 유니버스 개수로 새 ID 생성
+    const existingCount = story.universes.length;
+    const newId = `u${existingCount + 1}`;
+    const newLabel = `리믹스 #${existingCount}`;
+
+    // 원작에서 분기 지점까지의 에피소드 복사
+    const inheritedEpisodes: Episode[] = mainUniverse.episodes
+      .slice(0, episodeIndex)
+      .map((ep) => ({ ...ep }));
+
+    // 리믹스 에피소드 추가
+    const remixEpisode: Episode = {
+      index: episodeIndex,
+      title: `${episodeIndex + 1}화 — 리믹스`,
+      content: remixText.trim(),
+      likes: 0,
+      dislikes: 0,
+      remixAllowed: true,
+    };
+
+    const newUniverse: Universe = {
+      id: newId,
+      label: newLabel,
+      isMain: false,
+      branchFromEpisode: episodeIndex,
+      episodes: [...inheritedEpisodes, remixEpisode],
+    };
+
+    // appState 업데이트
+    const updated: AppState = {
+      ...appState,
+      stories: appState.stories.map((s) => {
+        if (s.id !== storyId) return s;
+        return {
+          ...s,
+          universes: [...s.universes, newUniverse],
+        };
+      }),
+    };
+
+    saveState(updated);
+    setAppState(updated);
+    setNewUniverseId(newId);
     setSubmitted(true);
   };
+
+  const totalUniverses = story.universes.length;
 
   return (
     <div className="w-full min-h-screen bg-black text-white">
@@ -93,7 +141,10 @@ export default function RemixClient() {
         >
           ← 취소
         </button>
-        <p className="text-white/80 text-sm font-medium">리믹스 작성</p>
+        <div className="text-center">
+          <p className="text-white/80 text-sm font-medium">리믹스 작성</p>
+          <p className="text-white/30 text-xs">{episode.title}</p>
+        </div>
         <button
           onClick={handleSubmit}
           disabled={!remixText.trim()}
@@ -105,9 +156,14 @@ export default function RemixClient() {
 
       {/* 원본 에피소드 요약 */}
       <div className="px-6 py-5 border-b border-white/10">
-        <p className="text-white/30 text-xs mb-1">{story.title} — {episode.title}</p>
+        <p className="text-white/30 text-xs mb-1">
+          {story.title} — {episode.title}
+        </p>
         <p className="text-white/50 text-sm leading-relaxed line-clamp-3">
           {episode.content.slice(0, 120)}...
+        </p>
+        <p className="text-white/20 text-xs mt-3">
+          현재 유니버스 {totalUniverses}개 · 새 유니버스 u{totalUniverses + 1} 생성 예정
         </p>
       </div>
 
@@ -118,7 +174,7 @@ export default function RemixClient() {
         </p>
         <textarea
           className="w-full bg-transparent text-white/90 text-base leading-8 resize-none outline-none placeholder:text-white/20"
-          rows={16}
+          rows={20}
           placeholder="여기서부터 새로운 유니버스가 시작됩니다..."
           value={remixText}
           onChange={(e) => setRemixText(e.target.value)}

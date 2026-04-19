@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode, Comment } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
@@ -21,10 +21,6 @@ export default function ReaderClient() {
   const [universeIndex, setUniverseIndex] = useState(0);
   const [showSnapshot, setShowSnapshot] = useState(false);
 
-  const startXRef = useRef<number | null>(null);
-  const startYRef = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const state = seedIfEmpty();
     setAppState(state);
@@ -33,27 +29,30 @@ export default function ReaderClient() {
   }, [episodeParam]);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el || !appState) return;
-
+    if (!appState) return;
     const story = appState.stories.find((s) => s.id === storyId);
     if (!story) return;
 
-    const onPointerDown = (e: PointerEvent) => {
-      startXRef.current = e.clientX;
-      startYRef.current = e.clientY;
+    let startX = 0;
+    let startY = 0;
+    let moved = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      moved = false;
     };
 
-    const onPointerUp = (e: PointerEvent) => {
-      if (startXRef.current === null || startYRef.current === null) return;
-      const diffX = startXRef.current - e.clientX;
-      const diffY = startYRef.current - e.clientY;
-      startXRef.current = null;
-      startYRef.current = null;
+    const onTouchEnd = (e: TouchEvent) => {
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const diffX = startX - endX;
+      const diffY = startY - endY;
       const absX = Math.abs(diffX);
       const absY = Math.abs(diffY);
 
-      if (absX > absY && absX > 50) {
+      // 수평이 수직보다 크고 40px 이상일 때만 회차 이동
+      if (absX > absY && absX > 40) {
         const currentUniverse = story.universes[universeIndex];
         const maxEpisode = currentUniverse.episodes.length - 1;
         if (diffX > 0) {
@@ -61,25 +60,43 @@ export default function ReaderClient() {
         } else {
           setEpisodeIndex((prev) => Math.max(prev - 1, 0));
         }
-        return;
-      }
-
-      if (absY > absX && absY > 50) {
-        const maxUniverse = story.universes.length - 1;
-        if (diffY > 0) {
-          setUniverseIndex((prev) => Math.min(prev + 1, maxUniverse));
-        } else {
-          setUniverseIndex((prev) => Math.max(prev - 1, 0));
-        }
-        return;
       }
     };
 
-    el.addEventListener("pointerdown", onPointerDown);
-    el.addEventListener("pointerup", onPointerUp);
+    // PC 마우스용
+    const onMouseDown = (e: MouseEvent) => {
+      startX = e.clientX;
+      startY = e.clientY;
+      moved = false;
+    };
+
+    const onMouseUp = (e: MouseEvent) => {
+      const diffX = startX - e.clientX;
+      const diffY = startY - e.clientY;
+      const absX = Math.abs(diffX);
+      const absY = Math.abs(diffY);
+
+      if (absX > absY && absX > 60) {
+        const currentUniverse = story.universes[universeIndex];
+        const maxEpisode = currentUniverse.episodes.length - 1;
+        if (diffX > 0) {
+          setEpisodeIndex((prev) => Math.min(prev + 1, maxEpisode));
+        } else {
+          setEpisodeIndex((prev) => Math.max(prev - 1, 0));
+        }
+      }
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
+
     return () => {
-      el.removeEventListener("pointerdown", onPointerDown);
-      el.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
     };
   }, [appState, storyId, universeIndex]);
 
@@ -205,23 +222,15 @@ export default function ReaderClient() {
   const totalUniverses = story.universes.length;
   const canRemix = episode.remixAllowed;
 
-  // 커버 이미지용 패턴 — 커버 컬러 기반 그라디언트
-  const coverGradient = `
-    radial-gradient(ellipse at 30% 40%, ${story.coverColor}cc 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 60%, ${story.coverColor}88 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 20%, #ffffff08 0%, transparent 40%),
-    linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)
-  `;
-
   return (
     <>
       <div
-        ref={containerRef}
-        className="w-full h-screen bg-black overflow-hidden select-none"
-        style={{ touchAction: "none" }}
+        className="w-full bg-black flex flex-col"
+        style={{ height: "100dvh" }}
       >
+
         {/* 상단 바 — 고정 */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4">
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 z-20">
           <button
             onClick={() => router.push("/")}
             className="text-white/50 text-sm hover:text-white transition-colors"
@@ -242,7 +251,6 @@ export default function ReaderClient() {
             <button
               onClick={() => setShowSnapshot(true)}
               className="text-white/30 text-base hover:text-white transition-colors"
-              title="스냅샷 카드 만들기"
             >
               📸
             </button>
@@ -250,33 +258,23 @@ export default function ReaderClient() {
         </div>
 
         {/* 스크롤 영역 */}
-        <div className="absolute inset-0 overflow-y-auto pt-14 pb-24">
+        <div className="flex-1 overflow-y-auto">
 
-          {/* 커버 이미지 영역 */}
-          <div
-            className="relative w-full flex-shrink-0"
-            style={{ height: 320 }}
-          >
-            {/* Picsum 실제 사진 */}
+          {/* 커버 이미지 */}
+          <div className="relative w-full" style={{ height: 320 }}>
             <img
               src={`https://picsum.photos/seed/${story.id}/800/640`}
               alt={story.title}
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
             />
-
-            {/* 컬러 오버레이 — 작품 색상과 블렌딩 */}
             <div
               className="absolute inset-0"
               style={{
                 background: `linear-gradient(to bottom, ${story.coverColor}55 0%, transparent 40%, rgba(0,0,0,0.85) 100%)`,
               }}
             />
-
-            {/* 하단 페이드 */}
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
-
-            {/* 커버 텍스트 오버레이 */}
             <div className="absolute bottom-8 left-6 right-6">
               <span className="text-white/50 text-xs tracking-widest uppercase block mb-2">
                 {story.genre}
@@ -290,11 +288,9 @@ export default function ReaderClient() {
             </div>
           </div>
 
-          {/* 본문 영역 */}
+          {/* 본문 */}
           <div className="px-6 pb-8">
             <div className="max-w-prose mx-auto">
-
-              {/* 본문 텍스트 */}
               <div className="text-white/90 text-base leading-8 whitespace-pre-wrap pt-6">
                 {episode.content}
               </div>
@@ -343,29 +339,57 @@ export default function ReaderClient() {
           </div>
         </div>
 
-        {/* 하단 바 */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-4 bg-gradient-to-t from-black to-transparent">
+        {/* 하단 바 — 고정 */}
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-t border-white/10 bg-black z-20">
           <button
             onClick={() => setEpisodeIndex((prev) => Math.max(prev - 1, 0))}
             disabled={episodeIndex === 0}
-            className="text-white/40 text-sm disabled:opacity-20 hover:text-white transition-colors"
+            className="text-white/40 text-sm disabled:opacity-20 hover:text-white transition-colors px-4 py-2"
           >
             ← 이전 화
           </button>
-          <div className="flex gap-1">
-            {universe.episodes.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  i === episodeIndex ? "w-6 bg-white" : "w-1.5 bg-white/30"
-                }`}
-              />
-            ))}
-          </div>
+
+          {/* 유니버스 전환 버튼 */}
+          {totalUniverses > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setUniverseIndex((prev) => Math.max(prev - 1, 0))}
+                disabled={universeIndex === 0}
+                className="text-white/30 text-xs disabled:opacity-20 hover:text-white transition-colors"
+              >
+                ↑
+              </button>
+              <span className="text-white/30 text-xs">
+                {universeIndex + 1}/{totalUniverses}
+              </span>
+              <button
+                onClick={() => setUniverseIndex((prev) => Math.min(prev + 1, totalUniverses - 1))}
+                disabled={universeIndex === totalUniverses - 1}
+                className="text-white/30 text-xs disabled:opacity-20 hover:text-white transition-colors"
+              >
+                ↓
+              </button>
+            </div>
+          )}
+
+          {/* 회차 인디케이터 */}
+          {totalUniverses === 1 && (
+            <div className="flex gap-1">
+              {universe.episodes.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    i === episodeIndex ? "w-6 bg-white" : "w-1.5 bg-white/30"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
           <button
             onClick={() => setEpisodeIndex((prev) => Math.min(prev + 1, totalEpisodes - 1))}
             disabled={episodeIndex === totalEpisodes - 1}
-            className="text-white/40 text-sm disabled:opacity-20 hover:text-white transition-colors"
+            className="text-white/40 text-sm disabled:opacity-20 hover:text-white transition-colors px-4 py-2"
           >
             다음 화 →
           </button>
