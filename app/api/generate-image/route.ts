@@ -3,25 +3,41 @@ import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, storyTitle, genre, episodeTitle, content } = await req.json();
+    const { storyTitle, genre, episodeTitle, content } = await req.json();
 
     const openaiKey = process.env.OPENAI_API_KEY;
     if (!openaiKey) {
-      return NextResponse.json({ error: "OPENAI_API_KEY가 설정되지 않았습니다." }, { status: 500 });
+      return NextResponse.json(
+        { error: "OPENAI_API_KEY가 설정되지 않았습니다." },
+        { status: 500 }
+      );
     }
 
-    // 웹툰 스타일 프롬프트 생성
-    const koreanContext = `
-Story: "${storyTitle}" (Genre: ${genre})
+    // 본문에서 핵심 장면 추출 (앞 500자)
+    const excerpt = (content ?? "").slice(0, 500).trim();
+
+    // 장르별 스타일 힌트
+    const genreStyle: Record<string, string> = {
+      "SF": "futuristic sci-fi setting, space station or high-tech environment, cool blue tones",
+      "판타지": "fantasy world, magical atmosphere, mystical forest or ancient ruins, warm golden tones",
+      "로맨스": "romantic urban setting, Seoul cityscape, soft warm lighting, emotional close-up",
+      "일상": "everyday Korean life, apartment or convenience store, realistic warm tones, slice of life",
+      "드라마": "dramatic Korean drama scene, intense emotions, cinematic lighting",
+      "스릴러": "dark thriller atmosphere, shadows and tension, cold desaturated tones",
+    };
+
+    const styleHint = genreStyle[genre ?? ""] ?? "cinematic Korean webtoon scene";
+
+    const imagePrompt = `Korean webtoon illustration style, manhwa art, clean line art, professional comic book quality.
+
+Scene context: "${excerpt}"
+
+Story: "${storyTitle}", Genre: ${genre}
 Episode: "${episodeTitle}"
-Content summary: ${content?.slice(0, 300) ?? prompt ?? ""}
-    `.trim();
 
-    const imagePrompt = `Webtoon style illustration, Korean manhwa art style, clean line art, vibrant colors, cinematic composition.
-Scene from: ${koreanContext}
-Style requirements: webtoon panel, expressive characters, detailed background, dramatic lighting, no text, no speech bubbles.`;
+Visual style: ${styleHint}
+Requirements: webtoon panel composition, expressive character emotions, detailed background, dramatic lighting effect, no text overlay, no speech bubbles, no watermark.`;
 
-    // DALL-E 3 호출
     const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -50,20 +66,21 @@ Style requirements: webtoon panel, expressive characters, detailed background, d
     const imageUrl = dalleData.data?.[0]?.url;
 
     if (!imageUrl) {
-      return NextResponse.json({ error: "이미지 URL을 받지 못했습니다." }, { status: 500 });
+      return NextResponse.json(
+        { error: "이미지 URL을 받지 못했습니다." },
+        { status: 500 }
+      );
     }
 
-    // Cloudinary에 저장 (OpenAI URL은 1시간 후 만료되므로)
+    // Cloudinary에 영구 저장
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
-      // Cloudinary 없으면 임시 URL 그대로 반환
       return NextResponse.json({ url: imageUrl, temporary: true });
     }
 
-    // Cloudinary upload via URL
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const folder = "whatif-webtoon";
     const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
@@ -81,14 +98,10 @@ Style requirements: webtoon panel, expressive characters, detailed background, d
 
     const cloudRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
+      { method: "POST", body: formData }
     );
 
     if (!cloudRes.ok) {
-      // Cloudinary 저장 실패해도 임시 URL 반환
       return NextResponse.json({ url: imageUrl, temporary: true });
     }
 

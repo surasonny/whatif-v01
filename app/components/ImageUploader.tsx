@@ -5,7 +5,6 @@ import { useState, useRef } from "react";
 interface Props {
   onUpload: (url: string) => void;
   currentImageUrl?: string;
-  // AI 생성용 컨텍스트 (선택)
   storyTitle?: string;
   genre?: string;
   episodeTitle?: string;
@@ -25,7 +24,9 @@ export default function ImageUploader({
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 수동 업로드
+  // 글이 300자 이상일 때만 AI 생성 활성화
+  const hasEnoughContent = (content?.length ?? 0) >= 300;
+
   const handleFile = async (file: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -36,19 +37,15 @@ export default function ImageUploader({
       setError("5MB 이하 이미지만 업로드 가능합니다.");
       return;
     }
-
     setUploading(true);
     setError("");
-
     try {
       const formData = new FormData();
       formData.append("file", file);
-
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       onUpload(data.url);
@@ -59,11 +56,10 @@ export default function ImageUploader({
     }
   };
 
-  // AI 자동 생성
   const handleGenerate = async () => {
+    if (!hasEnoughContent) return;
     setGenerating(true);
     setError("");
-
     try {
       const response = await fetch("/api/generate-image", {
         method: "POST",
@@ -75,11 +71,9 @@ export default function ImageUploader({
           content: content ?? "",
         }),
       });
-
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       onUpload(data.url);
-
       if (data.temporary) {
         setError("⚠️ 임시 이미지입니다. 1시간 후 만료됩니다.");
       }
@@ -102,37 +96,37 @@ export default function ImageUploader({
             alt="커버 이미지"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => inputRef.current?.click()}
-              className="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full"
-            >
-              이미지 변경
-            </button>
-          </div>
         </div>
       )}
 
-      {/* 업로드/생성 버튼 영역 */}
+      {/* 이미지 없을 때 */}
       {!currentImageUrl && (
         <div className="flex flex-col gap-2">
           {/* AI 생성 버튼 */}
           <button
             onClick={handleGenerate}
-            disabled={isLoading}
-            className="w-full h-16 rounded-xl border border-white/20 bg-white/5 flex items-center justify-center gap-3 hover:bg-white/10 hover:border-white/40 transition-all disabled:opacity-50"
+            disabled={isLoading || !hasEnoughContent}
+            className={`w-full h-16 rounded-xl border flex items-center justify-center gap-3 transition-all ${
+              hasEnoughContent
+                ? "border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40"
+                : "border-white/5 bg-white/2 opacity-40 cursor-not-allowed"
+            }`}
           >
             {generating ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <span className="text-white/60 text-sm">웹툰 이미지 생성 중...</span>
+                <span className="text-white/60 text-sm">웹툰 이미지 생성 중... (30초~1분)</span>
               </>
             ) : (
               <>
                 <span className="text-xl">✦</span>
                 <div className="text-left">
                   <p className="text-white/70 text-sm font-medium">AI 웹툰 이미지 생성</p>
-                  <p className="text-white/30 text-xs">글 내용을 바탕으로 자동 생성</p>
+                  <p className="text-white/30 text-xs">
+                    {hasEnoughContent
+                      ? "글 내용을 바탕으로 자동 생성"
+                      : "글을 300자 이상 작성한 뒤 사용 가능"}
+                  </p>
                 </div>
               </>
             )}
@@ -145,7 +139,7 @@ export default function ImageUploader({
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
-          {/* 수동 업로드 버튼 */}
+          {/* 수동 업로드 */}
           <button
             onClick={() => inputRef.current?.click()}
             disabled={isLoading}
@@ -166,13 +160,17 @@ export default function ImageUploader({
         </div>
       )}
 
-      {/* 이미지 있을 때 하단 버튼들 */}
+      {/* 이미지 있을 때 하단 버튼 */}
       {currentImageUrl && !isLoading && (
         <div className="flex gap-2 mt-2">
           <button
             onClick={handleGenerate}
-            disabled={isLoading}
-            className="flex-1 py-2 text-white/30 text-xs hover:text-white/60 transition-colors border border-white/10 rounded-lg hover:border-white/20 disabled:opacity-50"
+            disabled={isLoading || !hasEnoughContent}
+            className={`flex-1 py-2 text-xs border rounded-lg transition-colors ${
+              hasEnoughContent
+                ? "text-white/30 border-white/10 hover:text-white/60 hover:border-white/20"
+                : "text-white/10 border-white/5 cursor-not-allowed"
+            }`}
           >
             ✦ AI 재생성
           </button>
@@ -185,7 +183,6 @@ export default function ImageUploader({
         </div>
       )}
 
-      {/* 에러/경고 메시지 */}
       {error && (
         <p className="text-yellow-400/70 text-xs mt-2">{error}</p>
       )}
