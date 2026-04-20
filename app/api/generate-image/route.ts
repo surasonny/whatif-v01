@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
-// 안전하지 않은 표현을 프롬프트에서 제거
-function sanitizeForImage(text: string): string {
-  return text
-    .replace(/위협|협박|폭력|살인|죽|피|잔혹|공포|납치|폭행|칼|총|무기|범죄|악당/g, "")
-    .replace(/위험한|잔인한|무서운|끔찍한/g, "긴장된")
-    .slice(0, 200)
-    .trim();
-}
-
 export async function POST(req: NextRequest) {
   try {
     const { storyTitle, genre, episodeTitle, content } = await req.json();
@@ -22,25 +13,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 장르별 시각적 스타일 (본문 내용 대신 장르로 분위기 결정)
-    const genreVisual: Record<string, string> = {
-      "SF": "two people in a futuristic space station corridor, cool blue neon lighting, high-tech panels on walls, tense atmosphere",
-      "판타지": "a person standing in a magical glowing forest at night, mystical fireflies, ancient stone ruins, golden warm light",
-      "로맨스": "two people in a Seoul cafe at night, warm street lights through window, emotional moment, soft bokeh background",
-      "일상": "interior of a small Korean apartment room at night, warm lamp light, simple furniture, quiet contemplative mood",
-      "드라마": "a person standing alone on a Seoul rooftop at sunset, city skyline in background, dramatic sky, emotional silhouette",
-      "스릴러": "a dimly lit urban alley at night, long shadows, mysterious figure in distance, tense cinematic composition",
-      "미스터리": "a mysterious room with scattered documents and dim light, noir atmosphere, dust particles in light beam",
+    // 1단계: GPT로 본문을 안전한 장면 묘사로 변환
+    const sceneRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        max_tokens: 200,
+        messages: [
+          {
+            role: "system",
+            content: `You are a visual scene descriptor for webtoon illustrations.
+Given a story excerpt, describe ONE specific visual scene in 2-3 sentences.
+Rules:
+- Focus on setting, character appearance, lighting, and emotion
+- No violence, blood, weapons, or explicit content
+- Use visual language only (colors, shapes, expressions, environment)
+- Output in English only
+- Keep it safe for image generation APIs`,
+          },
+          {
+            role: "user",
+            content: `Story: "${storyTitle}" (Genre: ${genre})
+Episode: "${episodeTitle}"
+Excerpt: ${(content ?? "").slice(0, 400)}
+
+Describe the key visual scene:`,
+          },
+        ],
+      }),
+    });
+
+    let sceneDescription = "";
+    if (sceneRes.ok) {
+      const sceneData = await sceneRes.json();
+      sceneDescription = sceneData.choices?.[0]?.message?.content?.trim() ?? "";
+    }
+
+    // 장르별 폴백 (GPT 실패 시)
+    const genreFallback: Record<string, string> = {
+      "SF": "two characters in a futuristic space station, blue neon lighting, high-tech environment",
+      "판타지": "a person in a magical glowing forest, mystical atmosphere, warm golden light",
+      "로맨스": "two people in a cozy Seoul cafe at night, warm bokeh lights, emotional atmosphere",
+      "일상": "a small Korean apartment room at night, warm lamp, quiet contemplative mood",
+      "스릴러": "a person in a dimly lit urban setting, long shadows, tense cinematic composition",
+      "미스터리": "a mysterious room with scattered papers, dim light, noir atmosphere",
+      "드라마": "a person standing on a Seoul rooftop at sunset, city skyline, dramatic sky",
+      "액션": "dynamic scene in an urban environment, motion blur, cinematic wide shot",
+      "호러": "eerie empty corridor at night, single light source, unsettling atmosphere",
+      "역사": "traditional Korean hanok architecture, historical period setting, soft daylight",
     };
 
-    const safeTitle = sanitizeForImage(storyTitle ?? "");
-    const visualScene = genreVisual[genre ?? ""] ??
-      "two characters in a dramatic moment, cinematic Korean webtoon scene, detailed urban background";
+    const firstGenre = (genre ?? "").split("/")[0];
+    const fallback = genreFallback[firstGenre] ?? "two characters in a dramatic moment, cinematic scene";
+    const finalScene = sceneDescription || fallback;
 
-    const imagePrompt = `Korean webtoon illustration, manhwa art style, professional comic panel.
-Scene: ${visualScene}.
-Story mood from "${safeTitle}".
-Style: clean line art, vibrant colors, expressive faces, detailed background, dramatic lighting, no text, no speech bubbles, no watermark, safe for all audiences.`;
+    // 2단계: DALL-E 3로 이미지 생성
+    const imagePrompt = `Korean webtoon illustration, manhwa comic art style, professional panel quality.
+${finalScene}
+Art style: clean line art, vibrant colors, expressive character emotions, detailed background, dramatic lighting, cinematic composition.
+No text, no speech bubbles, no watermark, safe for all audiences.`;
 
     const dalleRes = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -76,7 +111,7 @@ Style: clean line art, vibrant colors, expressive faces, detailed background, dr
       );
     }
 
-    // Cloudinary에 영구 저장
+    // 3단계: Cloudinary에 영구 저장
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
