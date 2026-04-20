@@ -18,8 +18,6 @@ const ADULT_GENRES = [
   "성인로맨스", "성인판타지", "성인드라마",
 ];
 
-const ADULT_KEY = "whatif_adult_verified";
-
 export default function NewStoryPage() {
   const router = useRouter();
   const { nickname } = useMyNickname();
@@ -40,28 +38,16 @@ export default function NewStoryPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiInput, setShowAiInput] = useState(false);
 
-  // 성인 인증
-  const [adultVerified, setAdultVerified] = useState(false);
-  const [showAdultModal, setShowAdultModal] = useState(false);
-  const [pendingAdultGenre, setPendingAdultGenre] = useState<string | null>(null);
-
   useEffect(() => {
     const state = seedIfEmpty();
     setAppState(state);
     if (nickname) setAuthorName(nickname);
-    // localStorage에서 성인 인증 여부 확인
-    const verified = localStorage.getItem(ADULT_KEY) === "true";
-    setAdultVerified(verified);
     setMounted(true);
   }, [nickname]);
 
   function toggleGenre(g: string) {
-    const isAdult = ADULT_GENRES.includes(g);
-
-    // 성인 장르인데 미인증 상태
-    if (isAdult && !adultVerified) {
-      setPendingAdultGenre(g);
-      setShowAdultModal(true);
+    if (ADULT_GENRES.includes(g)) {
+      alert("성인 장르는 서비스 준비 중입니다.");
       return;
     }
 
@@ -73,24 +59,6 @@ export default function NewStoryPage() {
       if (prev.length >= 3) return prev;
       return [...prev, g];
     });
-  }
-
-  function handleAdultConfirm() {
-    localStorage.setItem(ADULT_KEY, "true");
-    setAdultVerified(true);
-    setShowAdultModal(false);
-    if (pendingAdultGenre) {
-      setGenres((prev) => {
-        if (prev.length >= 3) return prev;
-        return [...prev, pendingAdultGenre];
-      });
-      setPendingAdultGenre(null);
-    }
-  }
-
-  function handleAdultCancel() {
-    setShowAdultModal(false);
-    setPendingAdultGenre(null);
   }
 
   const genreString = genres.join("/");
@@ -129,7 +97,6 @@ export default function NewStoryPage() {
       "드라마": "#1a0f0f", "액션": "#0f1a0a", "호러": "#0a0f0a",
       "역사": "#1a1505", "무협": "#1a0f00", "스포츠": "#001a0a",
       "음악": "#0a001a", "요리": "#1a1000", "여행": "#001a1a",
-      "성인로맨스": "#1a0a1a", "성인판타지": "#0a0a1a", "성인드라마": "#1a0a0a",
     };
 
     const newEpisode: Episode = {
@@ -178,261 +145,209 @@ export default function NewStoryPage() {
     );
   }
 
-  // ── 성인 인증 모달 ─────────────────────────────────
-  const AdultModal = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-      <div className="absolute inset-0 bg-black/80" onClick={handleAdultCancel} />
-      <div className="relative w-full max-w-sm bg-zinc-950 border border-white/10 rounded-2xl px-6 py-8 text-center">
-        <p className="text-2xl mb-4">🔞</p>
-        <h2 className="text-white font-semibold text-lg mb-2">성인 장르</h2>
-        <p className="text-white/50 text-sm leading-relaxed mb-6">
-          성인 장르는 만 19세 이상만 이용할 수 있습니다.
-          본인이 만 19세 이상임을 확인해주세요.
-        </p>
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleAdultConfirm}
-            className="w-full py-3 rounded-xl bg-white text-black font-medium text-sm hover:bg-white/90 transition-colors"
-          >
-            만 19세 이상입니다
-          </button>
-          <button
-            onClick={handleAdultCancel}
-            className="w-full py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:text-white/60 transition-colors"
-          >
-            취소
-          </button>
-        </div>
-        <p className="text-white/20 text-xs mt-4">
-          허위 확인 시 이용이 제한될 수 있습니다.
-        </p>
-      </div>
-    </div>
-  );
-
   // ── INFO 단계 ──────────────────────────────────────
   if (step === "info") {
     return (
-      <>
-        {showAdultModal && <AdultModal />}
-        <div className="w-full min-h-screen bg-black text-white">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
-            <button
-              onClick={() => router.back()}
-              className="text-white/50 text-sm hover:text-white transition-colors"
-            >
-              ← 뒤로
-            </button>
-            <p className="text-white/80 text-sm font-medium">새 작품</p>
-            <button
-              onClick={() => {
-                if (title.trim() && hook.trim()) setStep("write");
-              }}
-              disabled={!title.trim() || !hook.trim()}
-              className="text-sm font-medium text-white/60 hover:text-white disabled:opacity-20 transition-colors"
-            >
-              다음 →
-            </button>
+      <div className="w-full min-h-screen bg-black text-white">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+          <button
+            onClick={() => router.back()}
+            className="text-white/50 text-sm hover:text-white transition-colors"
+          >
+            ← 뒤로
+          </button>
+          <p className="text-white/80 text-sm font-medium">새 작품</p>
+          <button
+            onClick={() => {
+              if (title.trim() && hook.trim()) setStep("write");
+            }}
+            disabled={!title.trim() || !hook.trim()}
+            className="text-sm font-medium text-white/60 hover:text-white disabled:opacity-20 transition-colors"
+          >
+            다음 →
+          </button>
+        </div>
+
+        <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto">
+          {/* 제목 */}
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">제목</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="작품 제목"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
+            />
           </div>
 
-          <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto">
-            {/* 제목 */}
-            <div>
-              <label className="text-white/40 text-xs tracking-widest block mb-2">제목</label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="작품 제목"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
-              />
+          {/* 작가명 */}
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">작가명</label>
+            <input
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="작가 이름"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
+            />
+          </div>
+
+          {/* 장르 */}
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-3">
+              장르 <span className="text-white/20">(최대 3개)</span>
+            </label>
+
+            {/* 일반 장르 */}
+            <p className="text-white/20 text-xs mb-2 tracking-widest">일반</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {GENERAL_GENRES.map((g) => {
+                const selected = genres.includes(g);
+                const maxed = genres.length >= 3 && !selected;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => toggleGenre(g)}
+                    disabled={maxed}
+                    className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
+                      selected
+                        ? "bg-white text-black border-white font-medium"
+                        : maxed
+                        ? "border-white/5 text-white/20 cursor-not-allowed"
+                        : "border-white/20 text-white/50 hover:border-white/40 hover:text-white/80"
+                    }`}
+                  >
+                    {g}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* 작가명 */}
-            <div>
-              <label className="text-white/40 text-xs tracking-widest block mb-2">작가명</label>
-              <input
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="작가 이름"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
-              />
+            {/* 성인 장르 */}
+            <p className="text-white/20 text-xs mb-2 tracking-widest flex items-center gap-2">
+              성인
+              <span className="text-white/20 text-xs">🔞 19+</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {ADULT_GENRES.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => toggleGenre(g)}
+                  className="px-3 py-1.5 rounded-full text-sm border border-white/10 text-white/20 cursor-not-allowed"
+                >
+                  🔒 {g}
+                </button>
+              ))}
             </div>
 
-            {/* 장르 */}
-            <div>
-              <label className="text-white/40 text-xs tracking-widest block mb-3">
-                장르 <span className="text-white/20">(최대 3개)</span>
-              </label>
+            {genres.length > 0 && (
+              <p className="text-white/30 text-xs mt-3">선택됨: {genreString}</p>
+            )}
+          </div>
 
-              {/* 일반 장르 */}
-              <p className="text-white/20 text-xs mb-2 tracking-widest">일반</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {GENERAL_GENRES.map((g) => {
-                  const selected = genres.includes(g);
-                  const maxed = genres.length >= 3 && !selected;
-                  return (
-                    <button
-                      key={g}
-                      onClick={() => toggleGenre(g)}
-                      disabled={maxed}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
-                        selected
-                          ? "bg-white text-black border-white font-medium"
-                          : maxed
-                          ? "border-white/5 text-white/20 cursor-not-allowed"
-                          : "border-white/20 text-white/50 hover:border-white/40 hover:text-white/80"
-                      }`}
-                    >
-                      {g}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* 성인 장르 */}
-              <p className="text-white/20 text-xs mb-2 tracking-widest flex items-center gap-2">
-                성인
-                <span className="text-red-400/60 text-xs">🔞 19+</span>
-                {adultVerified && (
-                  <span className="text-green-400/60 text-xs">✓ 인증됨</span>
-                )}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ADULT_GENRES.map((g) => {
-                  const selected = genres.includes(g);
-                  const maxed = genres.length >= 3 && !selected;
-                  return (
-                    <button
-                      key={g}
-                      onClick={() => toggleGenre(g)}
-                      disabled={maxed}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
-                        selected
-                          ? "bg-red-400/20 text-red-300 border-red-400/40 font-medium"
-                          : maxed
-                          ? "border-white/5 text-white/20 cursor-not-allowed"
-                          : "border-red-400/20 text-red-400/50 hover:border-red-400/40 hover:text-red-400/80"
-                      }`}
-                    >
-                      {adultVerified ? g : `🔒 ${g}`}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {genres.length > 0 && (
-                <p className="text-white/30 text-xs mt-3">선택됨: {genreString}</p>
-              )}
-            </div>
-
-            {/* 한 줄 소개 */}
-            <div>
-              <label className="text-white/40 text-xs tracking-widest block mb-2">한 줄 소개</label>
-              <input
-                value={hook}
-                onChange={(e) => setHook(e.target.value)}
-                placeholder="독자를 끌어당기는 한 문장"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
-              />
-            </div>
+          {/* 한 줄 소개 */}
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">한 줄 소개</label>
+            <input
+              value={hook}
+              onChange={(e) => setHook(e.target.value)}
+              placeholder="독자를 끌어당기는 한 문장"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
+            />
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   // ── WRITE 단계 ─────────────────────────────────────
   return (
-    <>
-      {showAdultModal && <AdultModal />}
-      <div className="w-full min-h-screen bg-black text-white">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
-          <button
-            onClick={() => setStep("info")}
-            className="text-white/50 text-sm hover:text-white transition-colors"
-          >
-            ← 뒤로
-          </button>
-          <div className="text-center">
-            <p className="text-white/80 text-sm font-medium">{title}</p>
-            <p className="text-white/30 text-xs">1화 작성</p>
-          </div>
-          <button
-            onClick={handleCreate}
-            disabled={!content.trim()}
-            className="text-sm font-medium text-white/60 hover:text-white disabled:opacity-20 transition-colors"
-          >
-            출판
-          </button>
+    <div className="w-full min-h-screen bg-black text-white">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+        <button
+          onClick={() => setStep("info")}
+          className="text-white/50 text-sm hover:text-white transition-colors"
+        >
+          ← 뒤로
+        </button>
+        <div className="text-center">
+          <p className="text-white/80 text-sm font-medium">{title}</p>
+          <p className="text-white/30 text-xs">1화 작성</p>
+        </div>
+        <button
+          onClick={handleCreate}
+          disabled={!content.trim()}
+          className="text-sm font-medium text-white/60 hover:text-white disabled:opacity-20 transition-colors"
+        >
+          출판
+        </button>
+      </div>
+
+      <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
+        {/* AI 초안 생성 */}
+        <div>
+          {!showAiInput ? (
+            <button
+              onClick={() => setShowAiInput(true)}
+              className="w-full py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/30 hover:text-white/60 transition-all"
+            >
+              ✦ AI로 1화 초안 생성
+            </button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <textarea
+                value={aiDirection}
+                onChange={(e) => setAiDirection(e.target.value)}
+                placeholder={`방향을 입력하세요 (선택)\n예: 주인공이 우주 기지에서 이상한 신호를 수신하는 장면으로 시작`}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 placeholder-white/20 focus:outline-none focus:border-white/30 text-sm resize-none"
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAiGenerate}
+                  disabled={aiLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-all disabled:opacity-50"
+                >
+                  {aiLoading ? "생성 중..." : "생성하기"}
+                </button>
+                <button
+                  onClick={() => setShowAiInput(false)}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-white/30 text-sm hover:text-white/50"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
-          {/* AI 초안 생성 */}
-          <div>
-            {!showAiInput ? (
-              <button
-                onClick={() => setShowAiInput(true)}
-                className="w-full py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/30 hover:text-white/60 transition-all"
-              >
-                ✦ AI로 1화 초안 생성
-              </button>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <textarea
-                  value={aiDirection}
-                  onChange={(e) => setAiDirection(e.target.value)}
-                  placeholder={`방향을 입력하세요 (선택)\n예: 주인공이 우주 기지에서 이상한 신호를 수신하는 장면으로 시작`}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 placeholder-white/20 focus:outline-none focus:border-white/30 text-sm resize-none"
-                  rows={3}
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAiGenerate}
-                    disabled={aiLoading}
-                    className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-all disabled:opacity-50"
-                  >
-                    {aiLoading ? "생성 중..." : "생성하기"}
-                  </button>
-                  <button
-                    onClick={() => setShowAiInput(false)}
-                    className="px-4 py-2.5 rounded-xl border border-white/10 text-white/30 text-sm hover:text-white/50"
-                  >
-                    취소
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* 본문 */}
+        <div>
+          <label className="text-white/40 text-xs tracking-widest block mb-2">1화 본문</label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="이야기를 시작하세요..."
+            className="w-full bg-transparent border-none text-white/90 placeholder-white/20 focus:outline-none text-base leading-8 resize-none min-h-[300px]"
+            rows={15}
+          />
+          <p className="text-white/20 text-xs mt-1">{content.length}자</p>
+        </div>
 
-          {/* 본문 */}
-          <div>
-            <label className="text-white/40 text-xs tracking-widest block mb-2">1화 본문</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="이야기를 시작하세요..."
-              className="w-full bg-transparent border-none text-white/90 placeholder-white/20 focus:outline-none text-base leading-8 resize-none min-h-[300px]"
-              rows={15}
-            />
-            <p className="text-white/20 text-xs mt-1">{content.length}자</p>
-          </div>
-
-          {/* 커버 이미지 — 본문 아래 배치 */}
-          <div>
-            <label className="text-white/40 text-xs tracking-widest block mb-3">
-              커버 이미지 <span className="text-white/20">(선택)</span>
-            </label>
-            <ImageUploader
-              onUpload={(url) => setCoverImageUrl(url)}
-              currentImageUrl={coverImageUrl}
-              storyTitle={title}
-              genre={genreString}
-              episodeTitle={`${title} 1화`}
-              content={content}
-            />
-          </div>
+        {/* 커버 이미지 — 본문 아래 배치 */}
+        <div>
+          <label className="text-white/40 text-xs tracking-widest block mb-3">
+            커버 이미지 <span className="text-white/20">(선택)</span>
+          </label>
+          <ImageUploader
+            onUpload={(url) => setCoverImageUrl(url)}
+            currentImageUrl={coverImageUrl}
+            storyTitle={title}
+            genre={genreString}
+            episodeTitle={`${title} 1화`}
+            content={content}
+          />
         </div>
       </div>
-    </>
+    </div>
   );
 }
