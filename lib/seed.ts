@@ -13,6 +13,7 @@ export const SEED_DATA: AppState = {
       author: "이하은",
       hook: "지구 마지막 통신사가 수신한 건 구조 신호가 아니었다.",
       coverColor: "#0f172a",
+      coverImageUrl: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80",
       seedVersion: 2,
       universes: [
         {
@@ -295,6 +296,7 @@ DONT COME.
       author: "박준혁",
       hook: "매일 밤 자정, 그는 어제로 돌아간다. 단 한 사람만 빼고 모든 게 리셋된다.",
       coverColor: "#1e1b4b",
+      coverImageUrl: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800&q=80",
       seedVersion: 2,
       universes: [
         {
@@ -540,6 +542,7 @@ DONT COME.
       author: "최도윤",
       hook: "숲은 모든 것을 기억한다. 스무 해 전 네가 죽인 것들까지.",
       coverColor: "#052e16",
+      coverImageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80",
       seedVersion: 2,
       universes: [
         {
@@ -795,6 +798,7 @@ DONT COME.
       author: "김민서",
       hook: "반지하 202호에는 세 명이 산다. 아무도 서로를 모른다. 아직은.",
       coverColor: "#292524",
+      coverImageUrl: "https://images.unsplash.com/photo-1501084817091-a4f3d1d19e07?w=800&q=80",
       seedVersion: 2,
       universes: [
         {

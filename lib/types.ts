@@ -13,6 +13,7 @@ export type Episode = {
   likes: number
   dislikes: number
   content: string
+  coverImageUrl?: string
 }
 
 export type Story = {
@@ -22,6 +23,7 @@ export type Story = {
   author: string
   hook: string
   coverColor: string
+  coverImageUrl?: string
   seedVersion: number
   universes: Universe[]
 }
@@ -43,4 +45,3 @@ export type AppState = {
   comments: Comment[]
   stories: Story[]
 }
-

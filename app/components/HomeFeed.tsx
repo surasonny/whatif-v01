@@ -14,6 +14,15 @@ const GENRE_COLORS: Record<string, string> = {
   일상: "#f59e0b",
   스릴러: "#ef4444",
   미스터리: "#6366f1",
+  드라마: "#f97316",
+  액션: "#22c55e",
+  호러: "#a855f7",
+  역사: "#d97706",
+  무협: "#ef4444",
+  스포츠: "#3b82f6",
+  음악: "#ec4899",
+  요리: "#f59e0b",
+  여행: "#06b6d4",
 };
 
 export default function HomeFeed() {
@@ -79,29 +88,48 @@ export default function HomeFeed() {
   const mainUniverse = story.universes.find((u) => u.isMain) ?? story.universes[0];
   const totalEpisodes = mainUniverse.episodes.length;
   const totalUniverses = story.universes.length;
-  const genreColor = GENRE_COLORS[story.genre] || "#6b7280";
+
+  // 장르가 복수(SF/로맨스)일 때 첫 번째 장르로 색상 결정
+  const firstGenre = story.genre.split("/")[0];
+  const genreColor = GENRE_COLORS[firstGenre] || "#6b7280";
+
+  // 커버 이미지 우선순위: story.coverImageUrl > 1화 coverImageUrl > coverColor 그라디언트
+  const bgImageUrl = story.coverImageUrl
+    || (mainUniverse.episodes[0] as any)?.coverImageUrl
+    || null;
 
   return (
     <>
       <div
         ref={containerRef}
-        className="w-full h-screen overflow-hidden select-none relative"
+        className="w-full h-screen overflow-hidden select-none relative bg-black"
         style={{ touchAction: "none" }}
       >
-        <img
-          key={story.id}
-          src={(story.universes[0]?.episodes[0] as any)?.coverImageUrl || `https://picsum.photos/seed/${story.id}-home/800/1200`}
-          alt={story.title}
-          onLoad={() => setImgLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? 1 : 0 }}
-          draggable={false}
-        />
-        <div
-          className="absolute inset-0 transition-colors duration-700"
-          style={{ backgroundColor: story.coverColor }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+        {/* 배경 이미지 */}
+        {bgImageUrl && (
+          <img
+            key={story.id}
+            src={bgImageUrl}
+            alt={story.title}
+            onLoad={() => setImgLoaded(true)}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+            style={{ opacity: imgLoaded ? 1 : 0 }}
+            draggable={false}
+          />
+        )}
+
+        {/* 배경 이미지 없으면 coverColor 그라디언트 */}
+        {!bgImageUrl && (
+          <div
+            className="absolute inset-0 transition-colors duration-700"
+            style={{
+              background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
+            }}
+          />
+        )}
+
+        {/* 오버레이 */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
 
         {/* 상단 */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 py-6">

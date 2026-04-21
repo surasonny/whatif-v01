@@ -124,6 +124,7 @@ export default function NewStoryPage() {
       author,
       hook,
       coverColor: coverColors[genres[0]] ?? "#1a1a2e",
+      ...(coverImageUrl ? { coverImageUrl } : {}),
       seedVersion: 0,
       universes: [newUniverse],
     };
@@ -242,6 +243,21 @@ export default function NewStoryPage() {
             {genres.length > 0 && (
               <p className="text-white/30 text-xs mt-3">선택됨: {genreString}</p>
             )}
+          </div>
+
+          {/* 대표 이미지 */}
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-3">
+              대표 이미지 <span className="text-white/20">(선택 · 홈 카드 배경)</span>
+            </label>
+            <ImageUploader
+              onUpload={(url) => setCoverImageUrl(url)}
+              currentImageUrl={coverImageUrl}
+              storyTitle={title}
+              genre={genreString}
+              episodeTitle="대표 이미지"
+              content=""
+            />
           </div>
 
           {/* 한 줄 소개 */}
