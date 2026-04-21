@@ -7,7 +7,7 @@ import { AppState, Story } from "./types";
 
 // 현재 데이터 버전 — seed가 바뀌면 이 숫자를 올린다
 // 버전이 다르면 localStorage를 초기화하고 새 seed를 불러온다
-export const CURRENT_DATA_VERSION = 4;
+export const CURRENT_DATA_VERSION = 5;
 
 const STORAGE_KEY = "whatif_app_state";
 
