@@ -296,23 +296,23 @@ export default function ReaderClient() {
 
           {/* 2행: 작가 전용 버튼 — 작가일 때만 표시 */}
           {isMyStory && (
-            <div className="flex items-center justify-end gap-2 px-6 pb-2">
+            <div className="flex items-center justify-end gap-1.5 px-6 pb-1">
               {/* 원고 수정 */}
               <button
                 onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
-                className="text-white/30 text-xs hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
+                className="text-white/30 text-xs hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
                 title="원고 수정"
               >
-                ✏️ <span>수정</span>
+                ✏️
               </button>
 
               {/* 홈 카드 대표 이미지 변경 — 1화에서만 */}
               {episodeIndex === 0 && (
                 <label
-                  className="text-white/30 text-xs hover:text-white transition-colors cursor-pointer flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
+                  className="text-white/30 text-xs hover:text-white transition-colors cursor-pointer px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
                   title="홈 카드 대표 이미지 변경"
                 >
-                  🖼 <span>커버</span>
+                  🖼
                   <input
                     type="file"
                     accept="image/*"
@@ -352,27 +352,27 @@ export default function ReaderClient() {
               {/* 이 화 삭제 */}
               <button
                 onClick={handleDeleteEpisode}
-                className="text-red-400/30 text-xs hover:text-red-400 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
+                className="text-red-400/30 text-xs hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
                 title="이 화 삭제"
               >
-                🗑 <span>화삭제</span>
+                🗑
               </button>
 
               {/* 작품 전체 삭제 — 리믹스 없을 때만 */}
               {totalUniverses === 1 && (
                 <button
                   onClick={handleDeleteStory}
-                  className="text-red-400/30 text-xs hover:text-red-400 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
+                  className="text-red-400/30 text-xs hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
                   title="작품 전체 삭제"
                 >
-                  ✕ <span>작품삭제</span>
+                  ✕
                 </button>
               )}
 
               {/* 스냅샷 */}
               <button
                 onClick={() => setShowSnapshot(true)}
-                className="text-white/30 text-xs hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
+                className="text-white/30 text-xs hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
               >
                 📸
               </button>

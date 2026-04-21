@@ -181,7 +181,7 @@ export default function HomeFeed() {
           <p className="text-white/40 text-sm mb-4">by {story.author}</p>
 
           {/* 훅 */}
-          <p className="text-white/70 text-base leading-relaxed mb-6 max-w-sm">
+          <p className="text-white/70 text-sm leading-relaxed mb-6 max-w-xs line-clamp-2">
             {story.hook}
           </p>
 
