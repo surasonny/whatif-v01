@@ -293,19 +293,21 @@ export default function ReaderClient() {
             </div>
 
             {isMyStory && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                {/* 원고 수정 */}
                 <button
                   onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
-                  className="text-white/30 text-xs hover:text-white transition-colors"
+                  className="text-white/40 text-xs hover:text-white transition-colors px-1.5 py-1 rounded"
                   title="원고 수정"
                 >
                   ✏️
                 </button>
-                {/* 홈 카드 대표 이미지 변경 버튼 — 1화에서만 표시 */}
+
+                {/* 홈 카드 대표 이미지 변경 — 1화에서만 */}
                 {episodeIndex === 0 && (
                   <label
-                    className="text-white/30 text-xs hover:text-white transition-colors cursor-pointer"
-                    title="홈 카드 대표 이미지 변경"
+                    className="text-white/40 text-xs hover:text-white transition-colors cursor-pointer px-1.5 py-1 rounded"
+                    title="홈 카드 대표 이미지"
                   >
                     🖼
                     <input
@@ -343,17 +345,21 @@ export default function ReaderClient() {
                     />
                   </label>
                 )}
+
+                {/* 이 화 삭제 */}
                 <button
                   onClick={handleDeleteEpisode}
-                  className="text-white/20 text-xs hover:text-red-400 transition-colors"
+                  className="text-white/20 text-xs hover:text-red-400 transition-colors px-1.5 py-1 rounded"
                   title="이 화 삭제"
                 >
                   🗑
                 </button>
+
+                {/* 작품 전체 삭제 — 리믹스 없을 때만 */}
                 {totalUniverses === 1 && (
                   <button
                     onClick={handleDeleteStory}
-                    className="text-white/20 text-xs hover:text-red-400 transition-colors"
+                    className="text-white/20 text-xs hover:text-red-400 transition-colors px-1.5 py-1 rounded"
                     title="작품 전체 삭제"
                   >
                     ✕
