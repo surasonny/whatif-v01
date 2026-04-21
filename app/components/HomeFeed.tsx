@@ -23,6 +23,8 @@ const GENRE_COLORS: Record<string, string> = {
   음악: "#ec4899",
   요리: "#f59e0b",
   여행: "#06b6d4",
+  "현대판타지": "#06b6d4",
+  "코미디": "#f59e0b",
 };
 
 export default function HomeFeed() {
@@ -88,15 +90,12 @@ export default function HomeFeed() {
   const mainUniverse = story.universes.find((u) => u.isMain) ?? story.universes[0];
   const totalEpisodes = mainUniverse.episodes.length;
   const totalUniverses = story.universes.length;
-
-  // 장르가 복수(SF/로맨스)일 때 첫 번째 장르로 색상 결정
   const firstGenre = story.genre.split("/")[0];
   const genreColor = GENRE_COLORS[firstGenre] || "#6b7280";
-
-  // 커버 이미지 우선순위: story.coverImageUrl > 1화 coverImageUrl > coverColor 그라디언트
-  const bgImageUrl = story.coverImageUrl
-    || (mainUniverse.episodes[0] as any)?.coverImageUrl
-    || null;
+  const bgImageUrl: string | null =
+    (story as any).coverImageUrl
+    ?? mainUniverse.episodes[0]?.coverImageUrl
+    ?? null;
 
   return (
     <>
@@ -118,68 +117,75 @@ export default function HomeFeed() {
           />
         )}
 
-        {/* 배경 이미지 없으면 coverColor 그라디언트 */}
+        {/* 배경 없으면 그라디언트 */}
         {!bgImageUrl && (
           <div
-            className="absolute inset-0 transition-colors duration-700"
+            className="absolute inset-0"
             style={{
               background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
             }}
           />
         )}
 
-        {/* 오버레이 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/10" />
+        {/* 오버레이 — 위는 어둡게, 아래는 더 어둡게 */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
 
-        {/* 상단 */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 py-6">
-          <span className="text-white font-bold text-xl tracking-tight">What If</span>
-          <div className="flex items-center gap-3">
+        {/* 상단 바 */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 pt-safe py-5">
+          <span className="text-white font-black text-2xl tracking-tighter">
+            What If
+          </span>
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setShowNicknameSetup(true)}
-              className="text-white/40 text-xs hover:text-white transition-colors"
+              className="text-white/50 text-xs hover:text-white transition-colors"
             >
               {nickname ? `@${nickname}` : "닉네임 설정"}
             </button>
             <button
               onClick={() => router.push("/stories")}
-              className="text-white/40 text-xs hover:text-white transition-colors"
+              className="text-white/50 text-xs hover:text-white transition-colors"
             >
               전체 →
             </button>
           </div>
         </div>
 
-        {/* 카드 콘텐츠 */}
-        <div className="absolute inset-0 flex flex-col justify-end px-6 pb-16">
-          <div className="flex items-center gap-2 mb-4">
+        {/* 카드 콘텐츠 — 하단 */}
+        <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-10">
+
+          {/* 장르 + 통계 */}
+          <div className="flex items-center gap-2 mb-3">
             <span
-              className="text-xs font-semibold px-3 py-1 rounded-full"
+              className="text-xs font-bold px-3 py-1 rounded-full"
               style={{
-                backgroundColor: `${genreColor}33`,
+                backgroundColor: `${genreColor}25`,
                 color: genreColor,
-                border: `1px solid ${genreColor}66`,
+                border: `1px solid ${genreColor}50`,
               }}
             >
               {story.genre}
             </span>
-            <span className="text-white/30 text-xs">총 {totalEpisodes}화</span>
+            <span className="text-white/30 text-xs">{totalEpisodes}화</span>
             {totalUniverses > 1 && (
-              <>
-                <span className="text-white/20 text-xs">·</span>
-                <span className="text-white/30 text-xs">유니버스 {totalUniverses}개</span>
-              </>
+              <span className="text-white/30 text-xs">· 유니버스 {totalUniverses}개</span>
             )}
           </div>
 
-          <h1 className="text-4xl font-bold text-white leading-tight mb-2 tracking-tight">
+          {/* 제목 */}
+          <h1 className="text-white font-black text-4xl leading-none mb-2 tracking-tight">
             {story.title}
           </h1>
-          <p className="text-sm text-white/50 mb-5">by {story.author}</p>
-          <p className="text-base text-white/80 leading-relaxed mb-8 max-w-sm">
+
+          {/* 작가 */}
+          <p className="text-white/40 text-sm mb-4">by {story.author}</p>
+
+          {/* 훅 */}
+          <p className="text-white/70 text-base leading-relaxed mb-8 max-w-sm">
             {story.hook}
           </p>
 
+          {/* 버튼 */}
           <div className="flex gap-3">
             <button
               onClick={() => router.push(`/reader/${story.id}/0`)}
@@ -189,14 +195,14 @@ export default function HomeFeed() {
             </button>
             <button
               onClick={() => router.push("/write/new")}
-              className="px-5 py-4 rounded-2xl border border-white/20 text-white/60 text-sm font-medium hover:border-white/50 hover:text-white active:scale-95 transition-all"
+              className="px-5 py-4 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/20 active:scale-95 transition-all backdrop-blur-sm"
             >
               ✍️ 새 작품
             </button>
           </div>
         </div>
 
-        {/* 인디케이터 */}
+        {/* 우측 인디케이터 */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
           {appState.stories.map((_, i) => (
             <button
@@ -209,9 +215,12 @@ export default function HomeFeed() {
           ))}
         </div>
 
+        {/* 스와이프 힌트 */}
         {currentIndex === 0 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-            <p className="text-white/25 text-xs tracking-widest">↕ 스와이프하여 다음 작품</p>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+            <p className="text-white/20 text-xs tracking-widest animate-pulse">
+              ↕ 스와이프
+            </p>
           </div>
         )}
       </div>
