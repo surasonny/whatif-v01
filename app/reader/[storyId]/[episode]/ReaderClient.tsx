@@ -268,18 +268,19 @@ export default function ReaderClient() {
     <>
       <div className="w-full bg-black flex flex-col" style={{ height: "100dvh" }}>
 
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 z-20">
-          <button
-            onClick={() => router.push("/")}
-            className="text-white/50 text-sm hover:text-white transition-colors"
-          >
-            ← 홈
-          </button>
-          <div className="text-center">
-            <p className="text-white/80 text-sm font-medium">{story.title}</p>
-            <p className="text-white/40 text-xs">{universe.label}</p>
-          </div>
-          <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 z-20">
+          {/* 1행: 홈 / 제목 / 화수+유니버스 */}
+          <div className="flex items-center justify-between px-6 pt-4 pb-1">
+            <button
+              onClick={() => router.push("/")}
+              className="text-white/50 text-sm hover:text-white transition-colors"
+            >
+              ← 홈
+            </button>
+            <div className="text-center">
+              <p className="text-white/80 text-sm font-medium">{story.title}</p>
+              <p className="text-white/40 text-xs">{universe.label}</p>
+            </div>
             <div className="text-white/40 text-xs text-right">
               <p>{episodeIndex + 1} / {totalEpisodes}화</p>
               {totalUniverses > 1 && (
@@ -291,90 +292,104 @@ export default function ReaderClient() {
                 </button>
               )}
             </div>
-
-            {isMyStory && (
-              <div className="flex items-center gap-1.5">
-                {/* 원고 수정 */}
-                <button
-                  onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
-                  className="text-white/40 text-xs hover:text-white transition-colors px-1.5 py-1 rounded"
-                  title="원고 수정"
-                >
-                  ✏️
-                </button>
-
-                {/* 홈 카드 대표 이미지 변경 — 1화에서만 */}
-                {episodeIndex === 0 && (
-                  <label
-                    className="text-white/40 text-xs hover:text-white transition-colors cursor-pointer px-1.5 py-1 rounded"
-                    title="홈 카드 대표 이미지"
-                  >
-                    🖼
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file || !appState) return;
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        try {
-                          const res = await fetch("/api/upload", {
-                            method: "POST",
-                            body: formData,
-                          });
-                          const data = await res.json();
-                          if (data.url) {
-                            const updated: AppState = {
-                              ...appState,
-                              stories: appState.stories.map((s) =>
-                                s.id === storyId
-                                  ? { ...s, coverImageUrl: data.url }
-                                  : s
-                              ),
-                            };
-                            setAppState(updated);
-                            saveState(updated);
-                          }
-                        } catch (err) {
-                          console.error("홈 카드 이미지 업로드 실패", err);
-                        }
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                )}
-
-                {/* 이 화 삭제 */}
-                <button
-                  onClick={handleDeleteEpisode}
-                  className="text-white/20 text-xs hover:text-red-400 transition-colors px-1.5 py-1 rounded"
-                  title="이 화 삭제"
-                >
-                  🗑
-                </button>
-
-                {/* 작품 전체 삭제 — 리믹스 없을 때만 */}
-                {totalUniverses === 1 && (
-                  <button
-                    onClick={handleDeleteStory}
-                    className="text-white/20 text-xs hover:text-red-400 transition-colors px-1.5 py-1 rounded"
-                    title="작품 전체 삭제"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowSnapshot(true)}
-              className="text-white/30 text-base hover:text-white transition-colors"
-            >
-              📸
-            </button>
           </div>
+
+          {/* 2행: 작가 전용 버튼 — 작가일 때만 표시 */}
+          {isMyStory && (
+            <div className="flex items-center justify-end gap-2 px-6 pb-2">
+              {/* 원고 수정 */}
+              <button
+                onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
+                className="text-white/30 text-xs hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
+                title="원고 수정"
+              >
+                ✏️ <span>수정</span>
+              </button>
+
+              {/* 홈 카드 대표 이미지 변경 — 1화에서만 */}
+              {episodeIndex === 0 && (
+                <label
+                  className="text-white/30 text-xs hover:text-white transition-colors cursor-pointer flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
+                  title="홈 카드 대표 이미지 변경"
+                >
+                  🖼 <span>커버</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !appState) return;
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      try {
+                        const res = await fetch("/api/upload", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        const data = await res.json();
+                        if (data.url) {
+                          const updated: AppState = {
+                            ...appState,
+                            stories: appState.stories.map((s) =>
+                              s.id === storyId
+                                ? { ...s, coverImageUrl: data.url }
+                                : s
+                            ),
+                          };
+                          setAppState(updated);
+                          saveState(updated);
+                        }
+                      } catch (err) {
+                        console.error("홈 카드 이미지 업로드 실패", err);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+
+              {/* 이 화 삭제 */}
+              <button
+                onClick={handleDeleteEpisode}
+                className="text-red-400/30 text-xs hover:text-red-400 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
+                title="이 화 삭제"
+              >
+                🗑 <span>화삭제</span>
+              </button>
+
+              {/* 작품 전체 삭제 — 리믹스 없을 때만 */}
+              {totalUniverses === 1 && (
+                <button
+                  onClick={handleDeleteStory}
+                  className="text-red-400/30 text-xs hover:text-red-400 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
+                  title="작품 전체 삭제"
+                >
+                  ✕ <span>작품삭제</span>
+                </button>
+              )}
+
+              {/* 스냅샷 */}
+              <button
+                onClick={() => setShowSnapshot(true)}
+                className="text-white/30 text-xs hover:text-white transition-colors flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
+              >
+                📸
+              </button>
+            </div>
+          )}
+
+          {/* 작가 아닐 때 스냅샷 버튼만 */}
+          {!isMyStory && (
+            <div className="flex items-center justify-end px-6 pb-2">
+              <button
+                onClick={() => setShowSnapshot(true)}
+                className="text-white/30 text-xs hover:text-white transition-colors px-2 py-1"
+              >
+                📸
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
