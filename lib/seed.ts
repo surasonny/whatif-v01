@@ -13,7 +13,7 @@ export const SEED_DATA: AppState = {
       author: "이하은",
       hook: "지구 마지막 통신사가 수신한 건 구조 신호가 아니었다.",
       coverColor: "#0f172a",
-      coverImageUrl: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80",
+      coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791028/ovyggpuh74vld5r8ag1g.png",
       seedVersion: 2,
       universes: [
         {
@@ -87,7 +87,8 @@ C — O — M — E
 
 두 사람은 잠시 서로를 바라봤다.
 
-아무도 먼저 말하지 않았다.`
+아무도 먼저 말하지 않았다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790949/zgn0xxtzdrsgofvb2hxm.png",
             },
             {
               index: 1,
@@ -155,7 +156,8 @@ DONT COME.
 
 민준은 잠시 하은을 바라봤다. 그리고 고개를 끄덕였다.
 
-하은은 파일을 개인 드라이브에 암호화해서 저장했다. 백업도 만들었다. 이유는 몰랐다. 그냥 그래야 할 것 같았다.`
+하은은 파일을 개인 드라이브에 암호화해서 저장했다. 백업도 만들었다. 이유는 몰랐다. 그냥 그래야 할 것 같았다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790977/vkdwwbucg6jc7tyyktfp.png",
             },
             {
               index: 2,
@@ -235,7 +237,8 @@ DONT COME.
 
 탐사대는 무엇을 알고 있는가.
 
-그리고 오태석은 왜 그것을 덮으려 하는가.`
+그리고 오태석은 왜 그것을 덮으려 하는가.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790995/mxrbk9umhbhne7wpmefo.png",
             },
             {
               index: 3,
@@ -283,7 +286,8 @@ DONT COME.
 
 하지만 한 가지는 알고 있었다.
 
-오태석에게는 보고하지 않을 것이다. 이번엔.`
+오태석에게는 보고하지 않을 것이다. 이번엔.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791016/jys5ukhkxbohmofrqemk.png",
             }
           ]
         }
@@ -296,7 +300,7 @@ DONT COME.
       author: "박준혁",
       hook: "매일 밤 자정, 그는 어제로 돌아간다. 단 한 사람만 빼고 모든 게 리셋된다.",
       coverColor: "#1e1b4b",
-      coverImageUrl: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800&q=80",
+      coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791127/tgnfrudaajqi2qiocmwy.png",
       seedVersion: 2,
       universes: [
         {
@@ -345,7 +349,8 @@ DONT COME.
 
 근데 이건 달랐다.
 
-달랐는데 설명할 수 없었다.`
+달랐는데 설명할 수 없었다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791070/elswlj6tiwq7vsmhw6uy.png",
             },
             {
               index: 1,
@@ -405,7 +410,8 @@ DONT COME.
 
 그녀가 웃었다. 짧게.
 
-"앉으세요."`
+"앉으세요."`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791082/t8aiezddzu1yvn0hdwkl.png",
             },
             {
               index: 2,
@@ -465,7 +471,8 @@ DONT COME.
 
 다섯 번의 만남 중 두 번을. 준혁은 다섯 번 모두 기억하고 있었다.
 
-그 차이가 이상하게 외로웠다.`
+그 차이가 이상하게 외로웠다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791096/nyaykazcj1sbfo9ayw5b.png",
             },
             {
               index: 3,
@@ -529,7 +536,8 @@ DONT COME.
 
 나는 또 리셋될 것이다.
 
-그래도 괜찮았다.`
+그래도 괜찮았다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791110/wzjfn3kl7ktecfmfmdho.png",
             }
           ]
         }
@@ -542,7 +550,7 @@ DONT COME.
       author: "백승혁",
       hook: "맞으면 날아가고, 달리면 넘어지고, 근데 어쩌다 전설의 고수 제자가 됐다.",
       coverColor: "#1a0a00",
-      coverImageUrl: "https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&q=80",
+      coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791232/oosvt0kattrg8oinnvwg.png",
       seedVersion: 4,
       universes: [
         {
@@ -603,7 +611,8 @@ DONT COME.
 
 승혁은 나물을 바구니에 다시 담으며 조용히 생각했다.
 
-아, 이분 진짜 이상한 분이구나.`
+아, 이분 진짜 이상한 분이구나.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791168/elficuodlh5rqiabvj1n.png",
             },
             {
               index: 1,
@@ -671,7 +680,8 @@ DONT COME.
 
 승혁은 그 말이 뭔가 굉장히 심오하게 들렸다가, 곰곰이 생각해보니 그냥 많이 넘어지라는 말인 것 같았다.
 
-어쨌든 앞으로 더 넘어질 것 같았다.`
+어쨌든 앞으로 더 넘어질 것 같았다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791187/sj5b4hbjme4z8mhddiaw.png",
             },
             {
               index: 2,
@@ -735,7 +745,8 @@ DONT COME.
 
 다음날도 달리다 넘어지고, 나무에서 떨어지고, 눈 감고 걷다가 개울에 빠졌다.
 
-소문은 계속 퍼졌다.`
+소문은 계속 퍼졌다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791187/sj5b4hbjme4z8mhddiaw.png",
             },
             {
               index: 3,
@@ -807,7 +818,8 @@ DONT COME.
 
 "잘하고 있다."
 
-승혁은 저 멀리서 배추를 흔들며 사라졌다.`
+승혁은 저 멀리서 배추를 흔들며 사라졌다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791187/sj5b4hbjme4z8mhddiaw.png",
             }
           ]
         }
@@ -820,7 +832,7 @@ DONT COME.
       author: "김재혁",
       hook: "전역하고 알았다. 군대 있는 동안 그녀가 흔들렸다는 걸. 근데 다시 훈련소 첫날이다.",
       coverColor: "#0a1628",
-      coverImageUrl: "https://images.unsplash.com/photo-1536422309742-43744f2bc5b8?w=800&q=80",
+      coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791298/qart8ya2z14qm7jdrh7v.png",
       seedVersion: 5,
       universes: [
         {
@@ -937,7 +949,8 @@ DONT COME.
 
 "...씨발."
 
-훈련소 첫날이었다.`
+훈련소 첫날이었다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790776/qyh8etvqccezeeilpqsw.png",
             },
             {
               index: 1,
@@ -1033,7 +1046,8 @@ DONT COME.
 
 5일 뒤 핸드폰을 받으면 전화할 거였다. 그 전에 편지가 먼저 도착하면 좋겠다고 생각했다.
 
-작전 시작이었다.`
+작전 시작이었다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790800/f3nnszlfzjrsun7avy3z.png",
             },
             {
               index: 2,
@@ -1157,7 +1171,8 @@ DONT COME.
 
 그리고 그 모임을 어떻게든 막아야 했다.
 
-방법을 찾아야 했다.`
+방법을 찾아야 했다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790818/dbfbiacsvj1k4lo2xm0u.png",
             },
             {
               index: 3,
@@ -1291,7 +1306,8 @@ DONT COME.
 
 작전은 아직 끝나지 않았다. 모임이 남아있었다. 그 남자가 남아있었다. 할 일이 많았다.
 
-근데 오늘은 그냥 이 사람 옆에 있기로 했다.`
+근데 오늘은 그냥 이 사람 옆에 있기로 했다.`,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776790838/r0efql7xypiiggomf9tk.png",
             }
           ]
         }
