@@ -332,21 +332,24 @@ export default function ReaderClient() {
         <div className="flex-1 overflow-y-auto">
 
           <div className="relative w-full" style={{ height: 320 }}>
-            {(episode as any).coverImageUrl ? (
-              <img
-                src={(episode as any).coverImageUrl}
-                alt={story.title}
-                className="absolute inset-0 w-full h-full object-cover"
-                draggable={false}
-              />
-            ) : (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
-                }}
-              />
-            )}
+            {(() => {
+              const coverImage = (episode as any).coverImageUrl || story.coverImageUrl || null;
+              return coverImage ? (
+                <img
+                  src={coverImage}
+                  alt={story.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  draggable={false}
+                />
+              ) : (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
+                  }}
+                />
+              );
+            })()}
             <div
               className="absolute inset-0"
               style={{
