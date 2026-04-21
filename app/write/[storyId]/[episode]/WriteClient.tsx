@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Episode } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
 import { saveState } from "@/lib/store";
-import ImageUploader from "@/app/components/ImageUploader";
 
 export default function WriteClient() {
   const params = useParams();
@@ -18,21 +17,18 @@ export default function WriteClient() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [mounted, setMounted] = useState(false);
   const [content, setContent] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const state = seedIfEmpty();
     setAppState(state);
 
-    // 기존 내용 불러오기
     const story = state.stories.find((s) => s.id === storyId);
     if (story) {
       const mainUniverse = story.universes[0];
       const episode = mainUniverse.episodes[episodeIndex];
       if (episode) {
         setContent(episode.content);
-        setCoverImageUrl((episode as any).coverImageUrl || "");
       }
     }
     setMounted(true);
@@ -77,8 +73,7 @@ export default function WriteClient() {
                 return {
                   ...ep,
                   content: content.trim(),
-                  coverImageUrl: coverImageUrl || undefined,
-                } as any;
+                };
               }),
             };
           }),
@@ -115,21 +110,6 @@ export default function WriteClient() {
         >
           {saved ? "저장됨 ✓" : "저장"}
         </button>
-      </div>
-
-      {/* 커버 이미지 업로드 */}
-      <div className="px-6 py-5 border-b border-white/10">
-        <p className="text-white/40 text-xs mb-3 tracking-wide">
-          커버 이미지 (선택)
-        </p>
-        <ImageUploader
-          onUpload={(url) => setCoverImageUrl(url)}
-          currentImageUrl={coverImageUrl}
-          storyTitle={story?.title}
-          genre={story?.genre}
-          episodeTitle={episode?.title}
-          content={content}
-        />
       </div>
 
       {/* 본문 작성 */}
