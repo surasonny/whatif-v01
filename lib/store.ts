@@ -49,6 +49,20 @@ export function saveState(state: AppState): void {
 }
 
 // ─────────────────────────────────────────
+// 버전 체크 없이 raw 상태를 읽어온다
+// seedIfEmpty 마이그레이션 전용 — 일반 코드에서 사용 금지
+// ─────────────────────────────────────────
+export function loadStateForMigration(): AppState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as AppState;
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────
 // localStorage를 완전히 초기화한다
 // 개발/디버그용
 // ─────────────────────────────────────────

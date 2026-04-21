@@ -1045,11 +1045,73 @@ C는 국물을 한 모금 마시고 말했다.
 };
 
 export function seedIfEmpty(): AppState {
-  const { loadState, saveState } = require("./store");
+  const { loadState, loadStateForMigration, saveState } = require("./store");
+
   const existing = loadState();
+
+  // 버전 일치 → 그대로 사용
   if (existing !== null) {
     return existing;
   }
-  saveState(SEED_DATA);
-  return SEED_DATA;
+
+  // 버전 불일치 → 이전 데이터 확인
+  const old = loadStateForMigration();
+
+  if (old === null) {
+    // 데이터 없음 → 완전 새 seed
+    saveState(SEED_DATA);
+    return SEED_DATA;
+  }
+
+  // 이전 데이터 있음 → 사용자 작품 보존 + seed 작품만 교체
+  const SEED_IDS = ["story-1", "story-2", "story-3", "story-4"];
+  const oldState = old as AppState;
+
+  // 사용자가 직접 만든 작품 (seed ID가 아닌 것들) 보존
+  const userStories = oldState.stories.filter((s) => !SEED_IDS.includes(s.id));
+
+  // seed 작품은 새 seed로 교체하되
+  // 사용자가 수정한 이미지/좋아요 등은 병합
+  const mergedSeedStories = SEED_DATA.stories.map((newStory) => {
+    const oldStory = oldState.stories.find((s) => s.id === newStory.id);
+    if (!oldStory) return newStory;
+
+    return {
+      ...newStory,
+      // 사용자가 업로드한 커버 이미지 보존
+      coverImageUrl: oldStory.coverImageUrl ?? newStory.coverImageUrl,
+      universes: newStory.universes.map((newUniverse) => {
+        const oldUniverse = oldStory.universes.find((u) => u.id === newUniverse.id);
+        if (!oldUniverse) return newUniverse;
+
+        return {
+          ...newUniverse,
+          // 메인 전환 상태 보존
+          isMain: oldUniverse.isMain,
+          episodes: newUniverse.episodes.map((newEp) => {
+            const oldEp = oldUniverse.episodes.find((e) => e.index === newEp.index);
+            if (!oldEp) return newEp;
+
+            return {
+              ...newEp,
+              // 사용자 반응 보존
+              likes: oldEp.likes,
+              dislikes: oldEp.dislikes,
+              // 사용자가 업로드한 화 이미지 보존
+              coverImageUrl: (oldEp as any).coverImageUrl ?? (newEp as any).coverImageUrl,
+            };
+          }),
+        };
+      }),
+    };
+  });
+
+  const migrated: AppState = {
+    dataVersion: CURRENT_DATA_VERSION,
+    comments: oldState.comments, // 댓글 전체 보존
+    stories: [...mergedSeedStories, ...userStories],
+  };
+
+  saveState(migrated);
+  return migrated;
 }
