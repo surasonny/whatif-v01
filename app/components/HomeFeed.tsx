@@ -152,7 +152,7 @@ export default function HomeFeed() {
         </div>
 
         {/* 카드 콘텐츠 — 하단 */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-10">
+        <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-6">
 
           {/* 장르 + 통계 */}
           <div className="flex items-center gap-2 mb-3">
@@ -181,7 +181,7 @@ export default function HomeFeed() {
           <p className="text-white/40 text-sm mb-4">by {story.author}</p>
 
           {/* 훅 */}
-          <p className="text-white/70 text-base leading-relaxed mb-8 max-w-sm">
+          <p className="text-white/70 text-base leading-relaxed mb-6 max-w-sm">
             {story.hook}
           </p>
 

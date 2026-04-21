@@ -430,7 +430,7 @@ export default function ReaderClient() {
           <div className="px-6 pb-8">
             <div className="max-w-prose mx-auto">
               {!(episode as any).coverImageUrl && (
-                <div className="pt-6 pb-2">
+                <div className="pt-6 pb-1">
                   <span className="text-white/30 text-xs tracking-widest uppercase block mb-2">
                     {story.genre}
                   </span>
@@ -442,7 +442,7 @@ export default function ReaderClient() {
                   </p>
                 </div>
               )}
-              <div className="text-white/90 text-base leading-8 whitespace-pre-wrap pt-6">
+              <div className="text-white/85 text-[17px] leading-[1.9] whitespace-pre-wrap pt-4 font-light tracking-wide">
                 {episode.content}
               </div>
 
