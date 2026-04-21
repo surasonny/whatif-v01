@@ -301,6 +301,48 @@ export default function ReaderClient() {
                 >
                   ✏️
                 </button>
+                {/* 홈 카드 대표 이미지 변경 버튼 — 1화에서만 표시 */}
+                {episodeIndex === 0 && (
+                  <label
+                    className="text-white/30 text-xs hover:text-white transition-colors cursor-pointer"
+                    title="홈 카드 대표 이미지 변경"
+                  >
+                    🖼
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !appState) return;
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        try {
+                          const res = await fetch("/api/upload", {
+                            method: "POST",
+                            body: formData,
+                          });
+                          const data = await res.json();
+                          if (data.url) {
+                            const updated: AppState = {
+                              ...appState,
+                              stories: appState.stories.map((s) =>
+                                s.id === storyId
+                                  ? { ...s, coverImageUrl: data.url }
+                                  : s
+                              ),
+                            };
+                            setAppState(updated);
+                            saveState(updated);
+                          }
+                        } catch (err) {
+                          console.error("홈 카드 이미지 업로드 실패", err);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
                 <button
                   onClick={handleDeleteEpisode}
                   className="text-white/20 text-xs hover:text-red-400 transition-colors"
@@ -332,7 +374,7 @@ export default function ReaderClient() {
         <div className="flex-1 overflow-y-auto">
 
           {(() => {
-            const coverImage = (episode as any).coverImageUrl || story.coverImageUrl || null;
+            const coverImage = (episode as any).coverImageUrl || null;
             if (!coverImage) return null;
             return (
               <div className="relative w-full" style={{ height: 320 }}>
@@ -366,7 +408,7 @@ export default function ReaderClient() {
 
           <div className="px-6 pb-8">
             <div className="max-w-prose mx-auto">
-              {!((episode as any).coverImageUrl || story.coverImageUrl) && (
+              {!(episode as any).coverImageUrl && (
                 <div className="pt-6 pb-2">
                   <span className="text-white/30 text-xs tracking-widest uppercase block mb-2">
                     {story.genre}
