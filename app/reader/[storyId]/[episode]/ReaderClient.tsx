@@ -331,47 +331,54 @@ export default function ReaderClient() {
 
         <div className="flex-1 overflow-y-auto">
 
-          <div className="relative w-full" style={{ height: 320 }}>
-            {(() => {
-              const coverImage = (episode as any).coverImageUrl || story.coverImageUrl || null;
-              return coverImage ? (
+          {(() => {
+            const coverImage = (episode as any).coverImageUrl || story.coverImageUrl || null;
+            if (!coverImage) return null;
+            return (
+              <div className="relative w-full" style={{ height: 320 }}>
                 <img
                   src={coverImage}
                   alt={story.title}
                   className="absolute inset-0 w-full h-full object-cover"
                   draggable={false}
                 />
-              ) : (
                 <div
                   className="absolute inset-0"
                   style={{
-                    background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
+                    background: `linear-gradient(to bottom, ${story.coverColor}55 0%, transparent 40%, rgba(0,0,0,0.85) 100%)`,
                   }}
                 />
-              );
-            })()}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(to bottom, ${story.coverColor}55 0%, transparent 40%, rgba(0,0,0,0.85) 100%)`,
-              }}
-            />
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
-            <div className="absolute bottom-8 left-6 right-6">
-              <span className="text-white/50 text-xs tracking-widest uppercase block mb-2">
-                {story.genre}
-              </span>
-              <h1 className="text-white text-2xl font-bold leading-tight mb-1">
-                {episode.title}
-              </h1>
-              <p className="text-white/50 text-xs">
-                {story.title} · by {story.author}
-              </p>
-            </div>
-          </div>
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+                <div className="absolute bottom-8 left-6 right-6">
+                  <span className="text-white/50 text-xs tracking-widest uppercase block mb-2">
+                    {story.genre}
+                  </span>
+                  <h1 className="text-white text-2xl font-bold leading-tight mb-1">
+                    {episode.title}
+                  </h1>
+                  <p className="text-white/50 text-xs">
+                    {story.title} · by {story.author}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="px-6 pb-8">
             <div className="max-w-prose mx-auto">
+              {!((episode as any).coverImageUrl || story.coverImageUrl) && (
+                <div className="pt-6 pb-2">
+                  <span className="text-white/30 text-xs tracking-widest uppercase block mb-2">
+                    {story.genre}
+                  </span>
+                  <h1 className="text-white text-2xl font-bold leading-tight mb-1">
+                    {episode.title}
+                  </h1>
+                  <p className="text-white/40 text-xs mb-6">
+                    {story.title} · by {story.author}
+                  </p>
+                </div>
+              )}
               <div className="text-white/90 text-base leading-8 whitespace-pre-wrap pt-6">
                 {episode.content}
               </div>

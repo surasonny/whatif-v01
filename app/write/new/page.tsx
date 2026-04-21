@@ -256,7 +256,7 @@ export default function NewStoryPage() {
               storyTitle={title}
               genre={genreString}
               episodeTitle="대표 이미지"
-              content=""
+              content={title + " " + hook}
             />
           </div>
 
