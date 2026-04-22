@@ -101,8 +101,8 @@ export default function HomeFeed() {
     <>
       <div
         ref={containerRef}
-        className="w-full h-screen overflow-hidden select-none relative bg-black"
-        style={{ touchAction: "none" }}
+        className="w-full overflow-hidden select-none relative bg-black"
+        style={{ touchAction: "none", height: "100dvh" }}
       >
         {/* 배경 이미지 */}
         {bgImageUrl && (
@@ -152,7 +152,7 @@ export default function HomeFeed() {
         </div>
 
         {/* 카드 콘텐츠 — 하단 */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-5 pb-6">
+        <div className="absolute inset-x-0 bottom-0 z-10 px-5" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))" }}>
           {/* 장르 + 통계 */}
           <div className="flex items-center gap-2 mb-2">
             <span
