@@ -83,6 +83,44 @@ export default function UniversePanel({
           )}
         </div>
 
+        {/* 분기 구조 시각화 — 리믹스가 있을 때만 */}
+        {story.universes.some((u) => u.branchFromEpisode !== null) && (
+          <div className="mb-4 px-3 py-3 rounded-xl bg-white/3 border border-white/5">
+            <p className="text-white/20 text-xs mb-2 tracking-widest">분기 구조</p>
+            <div className="flex flex-col gap-1.5">
+              {story.universes.map((u) => {
+                const score = calcUniverseScore(u, comments);
+                return (
+                  <div key={u.id} className="flex items-center gap-2">
+                    <div className={`flex items-center gap-1.5 ${
+                      u.branchFromEpisode !== null ? "ml-4" : ""
+                    }`}>
+                      {u.branchFromEpisode !== null && (
+                        <span className="text-white/15 text-xs">└</span>
+                      )}
+                      <span className={`text-xs ${
+                        u.isMain ? "text-white/60 font-medium" : "text-white/30"
+                      }`}>
+                        {u.label}
+                      </span>
+                      {u.isMain && (
+                        <span className="text-xs text-white/20">(정사)</span>
+                      )}
+                      {u.branchFromEpisode !== null && (
+                        <span className="text-amber-400/40 text-xs">
+                          {u.branchFromEpisode + 1}화 →
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 h-px bg-white/5" />
+                    <span className="text-white/20 text-xs">{score}점</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* 에러 메시지 */}
         {errorMsg && (
           <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
@@ -201,6 +239,29 @@ export default function UniversePanel({
                     </span>
                   </div>
 
+                  {/* D-7 카운트다운 */}
+                  {!isCurrentMain && universe.challengeStartedAt && !challengeFailed && (
+                    (() => {
+                      const started = new Date(universe.challengeStartedAt!);
+                      const now = new Date();
+                      const diffDays = (now.getTime() - started.getTime()) / (1000 * 60 * 60 * 24);
+                      const remaining = Math.max(0, Math.ceil(7 - diffDays));
+                      return (
+                        <div className={`mb-2 flex items-center gap-1.5 ${
+                          remaining <= 2 ? "text-red-400/80" : "text-amber-400/60"
+                        }`}>
+                          <span className="text-xs">⏳</span>
+                          <span className="text-xs font-medium">
+                            도전 마감 D-{remaining}
+                          </span>
+                          {remaining <= 2 && (
+                            <span className="text-xs text-red-400/60">· 마감 임박</span>
+                          )}
+                        </div>
+                      );
+                    })()
+                  )}
+
                   {/* 진행률 바 — 메인이 아닌 유니버스만 */}
                   {!isCurrentMain && mainScore > 0 && (
                     <div className="mb-2">
@@ -229,10 +290,19 @@ export default function UniversePanel({
 
                   {/* 하단 행 */}
                   <div className="flex items-center justify-between mt-1">
-                    <p className="text-white/30 text-xs">
-                      {universe.episodes.length}화
-                      {universe.branchFromEpisode !== null &&
-                        ` · ${universe.branchFromEpisode + 1}화에서 분기`}
+                    <p className="text-white/30 text-xs flex items-center gap-1.5">
+                      <span>{universe.episodes.length}화</span>
+                      {universe.branchFromEpisode !== null && (
+                        <>
+                          <span className="text-white/15">·</span>
+                          <span className="flex items-center gap-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/50" />
+                            <span className="text-amber-400/60">
+                              {universe.branchFromEpisode + 1}화에서 분기
+                            </span>
+                          </span>
+                        </>
+                      )}
                     </p>
 
                     <div className="flex items-center gap-2">
