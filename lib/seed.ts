@@ -355,7 +355,7 @@ DONT COME.
               index: 3,
               title: "4화 — 두 번째 신호",
               remixAllowed: true,
-              likes: 100,
+              likes: 80,
               dislikes: 0,
               content: `사흘 뒤, 두 번째 신호가 왔다.
 
