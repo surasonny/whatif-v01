@@ -407,6 +407,7 @@ DONT COME.
           label: "리믹스 #1",
           isMain: false,
           branchFromEpisode: 3,
+          challengeStartedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
           episodes: [
             {
               index: 0,

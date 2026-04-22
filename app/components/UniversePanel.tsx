@@ -289,7 +289,8 @@ export default function UniversePanel({
                   )}
 
                   {/* 하단 행 */}
-                  <div className="flex items-center justify-between mt-1">
+                  <div className="flex flex-col gap-2 mt-1">
+                    {/* 1행: 화수 + 분기점 */}
                     <p className="text-white/30 text-xs flex items-center gap-1.5">
                       <span>{universe.episodes.length}화</span>
                       {universe.branchFromEpisode !== null && (
@@ -305,8 +306,9 @@ export default function UniversePanel({
                       )}
                     </p>
 
-                    <div className="flex items-center gap-2">
-                      {!isCurrentMain && !isConfirming && (
+                    {/* 2행: 버튼들 */}
+                    {!isCurrentMain && !isConfirming && (
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -317,33 +319,31 @@ export default function UniversePanel({
                         >
                           정사로 전환
                         </button>
-                      )}
-                      {!isCurrentMain && !isConfirming && (
                         <button
                           onClick={(e) => handleDeleteClick(e, universe.id)}
                           className="text-xs text-red-400/40 hover:text-red-400/80 transition-colors px-2 py-1 rounded border border-red-400/10 hover:border-red-400/30"
                         >
                           삭제
                         </button>
-                      )}
-                      {isConfirming && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/40">정말 삭제?</span>
-                          <button
-                            onClick={(e) => handleDeleteConfirm(e, universe.id)}
-                            className="text-xs text-red-400 px-2 py-1 rounded border border-red-400/40 hover:bg-red-400/10"
-                          >
-                            삭제
-                          </button>
-                          <button
-                            onClick={handleDeleteCancel}
-                            className="text-xs text-white/40 px-2 py-1 rounded border border-white/10"
-                          >
-                            취소
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                    {isConfirming && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white/40">정말 삭제?</span>
+                        <button
+                          onClick={(e) => handleDeleteConfirm(e, universe.id)}
+                          className="text-xs text-red-400 px-2 py-1 rounded border border-red-400/40 hover:bg-red-400/10"
+                        >
+                          삭제
+                        </button>
+                        <button
+                          onClick={handleDeleteCancel}
+                          className="text-xs text-white/40 px-2 py-1 rounded border border-white/10"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
