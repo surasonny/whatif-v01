@@ -11,15 +11,29 @@ export async function POST(req: NextRequest) {
     }
 
     const isNewStory = !currentEpisode && !previousEpisodes;
+    const isEdit = currentEpisode && previousEpisodes === "";
+    const isContinue = currentEpisode === "위 내용에 이어서 작성";
 
-    const systemPrompt = `너는 한국 웹소설 전문 작가다.
-독자를 첫 문장부터 끌어당기는 강렬한 오프닝을 쓴다.
-문장은 짧고 리듬감 있게. 대화와 행동 중심으로 전개한다.
-감정은 직접 서술하지 않고 행동과 대사로 보여준다.
-마크다운 금지. 제목 금지. 순수 본문만 작성한다.`;
+    const systemPrompt = `너는 한국 웹소설 전문 작가다. 아래 규칙을 절대 어겨서는 안 된다.
 
-    const userPrompt = isNewStory
-      ? `작품명: "${storyTitle}"
+[절대 금지]
+- 감정을 직접 서술하지 마라. ("그는 두려움을 느꼈다" → 금지)
+- 철학적 질문으로 끝내지 마라. ("그는 무엇을 선택할 것인가?" → 금지)
+- 설명형 대사 금지. ("나는 모든 것을 통제하는 자야" → 금지)
+- 마크다운 금지. 제목 금지. 순수 본문만.
+
+[반드시 지켜야 할 것]
+- 감정은 행동과 대사로만 보여줘.
+- 문장은 짧고 리듬감 있게.
+- 대화는 자연스럽고 간결하게.
+- 마지막 문장은 독자가 다음을 궁금하게 만들어야 한다.
+- 작가 스타일이 지정되면 그 스타일을 철저히 따라라.
+- 등장인물 특징이 지정되면 대사와 행동에 반드시 반영해라.`;
+
+    let userPrompt = "";
+
+    if (isNewStory) {
+      userPrompt = `작품명: "${storyTitle}"
 
 아래 가이드를 바탕으로 1화를 작성해줘.
 
@@ -27,28 +41,59 @@ ${direction}
 
 조건:
 - 첫 문장이 독자를 즉시 끌어당겨야 함
-- 등장인물이 가이드에 있으면 반드시 등장시킬 것
-- 배경과 분위기를 자연스럽게 녹여낼 것
-- 작가 스타일이 있으면 그 문체를 철저히 따를 것
+- 등장인물 특징을 대사와 행동으로 자연스럽게 드러낼 것
+- 배경과 분위기를 설명하지 말고 보여줄 것
 - 분량: 800~1200자
-- 마지막은 다음 화가 궁금하게 끝낼 것
-- 제목 없이 본문만`
-      : `작품명: "${storyTitle}"
+- 마지막은 다음 화가 궁금하게 끝낼 것`;
 
-이전 화 내용:
-${previousEpisodes}
+    } else if (isEdit) {
+      userPrompt = `아래 글을 편집해줘.
 
-현재 화 원본:
+[원본]
 ${currentEpisode}
 
-리믹스 방향: ${direction}
+[편집 방향]
+${direction}
+
+중요:
+- 스토리, 등장인물, 사건 순서를 절대 바꾸지 마라
+- 같은 장면을 다른 문체로 다듬는 것만 허용
+- 분량은 원본과 비슷하게 유지
+- 원본에 없는 새로운 사건이나 대사를 추가하지 마라`;
+
+    } else if (isContinue) {
+      userPrompt = `작품명: "${storyTitle}"
+
+[이전 내용]
+${previousEpisodes}
+
+위 내용에 이어서 다음 장면을 써줘.
+
+[이어쓰기 방향]
+${direction}
+
+조건:
+- 이전 내용의 문체와 분위기를 반드시 유지할 것
+- 등장인물의 말투와 성격을 유지할 것
+- 자연스럽게 이어지는 장면으로
+- 분량: 400~600자`;
+
+    } else {
+      userPrompt = `작품명: "${storyTitle}"
+
+[이전 화 내용]
+${previousEpisodes}
+
+[현재 화 원본]
+${currentEpisode}
+
+[리믹스 방향]
+${direction}
 
 위 방향으로 현재 화를 완전히 새롭게 작성해줘.
-조건:
 - 이전 화 흐름과 등장인물 유지
-- 리믹스 방향을 반영해서 원본과 다른 전개
-- 분량: 800~1200자
-- 제목 없이 본문만`;
+- 분량: 800~1200자`;
+    }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -63,7 +108,7 @@ ${currentEpisode}
           { role: "user", content: userPrompt },
         ],
         max_tokens: 2000,
-        temperature: 0.85,
+        temperature: 0.8,
       }),
     });
 
@@ -78,7 +123,6 @@ ${currentEpisode}
       return NextResponse.json({ error: "생성된 내용이 없습니다" }, { status: 500 });
     }
 
-    // content 와 text 둘 다 반환 (프론트 호환성)
     return NextResponse.json({ content, text: content });
 
   } catch (e: any) {
