@@ -40,7 +40,7 @@ export default function NewStoryPage() {
   const [coverImageUrl, setCoverImageUrl] = useState("");
 
   // guide 단계
-  const [protagonist, setProtagonist] = useState("");
+  const [characters, setCharacters] = useState<{ name: string; role: string; desc: string }[]>([{ name: "", role: "주인공", desc: "" }]);
   const [setting, setSetting] = useState("");
   const [conflict, setConflict] = useState("");
   const [writingStyle, setWritingStyle] = useState("");
@@ -76,13 +76,31 @@ export default function NewStoryPage() {
 
   const genreString = genres.join("/");
 
+  function addCharacter() {
+    setCharacters((prev) => [...prev, { name: "", role: "조연", desc: "" }]);
+  }
+
+  function removeCharacter(index: number) {
+    setCharacters((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function updateCharacter(index: number, field: "name" | "role" | "desc", value: string) {
+    setCharacters((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+    );
+  }
+
   const handleAiGenerate = async () => {
     if (!title.trim()) return;
     setAiLoading(true);
 
     const styleText = customStyle.trim() || writingStyle;
+    const characterText = characters
+      .filter((c) => c.name.trim())
+      .map((c) => `${c.role} ${c.name}${c.desc ? ` (${c.desc})` : ""}`)
+      .join(", ");
     const guideContext = [
-      protagonist && `주인공: ${protagonist}`,
+      characterText && `등장인물: ${characterText}`,
       setting && `배경: ${setting}`,
       conflict && `핵심 갈등: ${conflict}`,
       styleText && `작가 스타일: ${styleText}`,
@@ -286,15 +304,53 @@ export default function NewStoryPage() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs tracking-widest block mb-2">
-              주인공 <span className="text-white/20">(선택)</span>
-            </label>
-            <input
-              value={protagonist}
-              onChange={(e) => setProtagonist(e.target.value)}
-              placeholder="예: 27세 여성 우주통신사, 내성적이고 집요한 성격"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-white/40 text-xs tracking-widest">
+                등장인물 <span className="text-white/20">(선택)</span>
+              </label>
+              <button
+                onClick={addCharacter}
+                className="text-xs text-white/30 hover:text-white/60 border border-white/10 hover:border-white/30 rounded-lg px-2 py-1 transition-all"
+              >
+                + 추가
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {characters.map((char, i) => (
+                <div key={i} className="flex gap-2 items-start">
+                  <select
+                    value={char.role}
+                    onChange={(e) => updateCharacter(i, "role", e.target.value)}
+                    className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white/60 focus:outline-none focus:border-white/30 text-xs shrink-0"
+                  >
+                    <option value="주인공">주인공</option>
+                    <option value="조연">조연</option>
+                    <option value="악역">악역</option>
+                    <option value="기타">기타</option>
+                  </select>
+                  <input
+                    value={char.name}
+                    onChange={(e) => updateCharacter(i, "name", e.target.value)}
+                    placeholder="이름"
+                    className="w-24 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm shrink-0"
+                  />
+                  <input
+                    value={char.desc}
+                    onChange={(e) => updateCharacter(i, "desc", e.target.value)}
+                    placeholder="특징 (선택)"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm min-w-0"
+                  />
+                  {characters.length > 1 && (
+                    <button
+                      onClick={() => removeCharacter(i)}
+                      className="text-white/20 hover:text-red-400/60 transition-colors text-sm pt-2.5 shrink-0"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -381,11 +437,15 @@ export default function NewStoryPage() {
 
       <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
 
-        {(protagonist || setting || conflict || writingStyle || customStyle) && (
+        {(characters.filter((c) => c.name.trim()).length > 0 || setting || conflict || writingStyle || customStyle) && (
           <div className="px-4 py-3 rounded-xl bg-white/5 border border-white/10">
             <p className="text-white/30 text-xs mb-2 tracking-widest">스토리 가이드 적용됨</p>
             <div className="flex flex-col gap-1">
-              {protagonist && <p className="text-white/40 text-xs">👤 {protagonist}</p>}
+              {characters.filter((c) => c.name.trim()).length > 0 && (
+                <p className="text-white/40 text-xs">
+                  👤 {characters.filter((c) => c.name.trim()).map((c) => `${c.role} ${c.name}`).join(", ")}
+                </p>
+              )}
               {setting && <p className="text-white/40 text-xs">🌍 {setting}</p>}
               {conflict && <p className="text-white/40 text-xs">⚡ {conflict}</p>}
               {(customStyle || writingStyle) && (
