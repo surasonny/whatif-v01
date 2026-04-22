@@ -95,20 +95,24 @@ export default function NewStoryPage() {
     setAiLoading(true);
 
     const styleText = customStyle.trim() || writingStyle;
+
     const characterText = characters
       .filter((c) => c.name.trim())
       .map((c) => `${c.role} ${c.name}${c.desc ? ` (${c.desc})` : ""}`)
       .join(", ");
-    const guideContext = [
+
+    const guideLines = [
       characterText && `등장인물: ${characterText}`,
       setting && `배경: ${setting}`,
       conflict && `핵심 갈등: ${conflict}`,
       styleText && `작가 스타일: ${styleText}`,
-    ].filter(Boolean).join("\n");
+    ].filter(Boolean);
 
-    const direction = aiDirection.trim()
-      ? `${aiDirection}\n\n${guideContext}`
-      : guideContext || `${genreString} 장르의 웹소설 1화. 독자를 몰입시키는 강렬한 오프닝.`;
+    const guideContext = guideLines.join("\n");
+
+    const direction = guideContext
+      ? `${guideContext}${aiDirection.trim() ? `\n\n추가 방향: ${aiDirection.trim()}` : ""}`
+      : aiDirection.trim() || `${genreString} 장르의 웹소설 1화. 독자를 몰입시키는 강렬한 오프닝.`;
 
     try {
       const res = await fetch("/api/remix", {
@@ -501,6 +505,16 @@ export default function NewStoryPage() {
             rows={15}
           />
           <p className="text-white/20 text-xs mt-1">{content.length}자</p>
+        </div>
+
+        <div className="sticky bottom-0 bg-black border-t border-white/10 py-4 -mx-6 px-6">
+          <button
+            onClick={handleCreate}
+            disabled={!content.trim()}
+            className="w-full py-4 rounded-2xl bg-white text-black font-bold text-base disabled:opacity-20 hover:bg-white/90 active:scale-95 transition-all"
+          >
+            {content.trim() ? "출판하기" : "본문을 작성해주세요"}
+          </button>
         </div>
 
         <div>
