@@ -307,6 +307,17 @@ export default function ReaderClient() {
                 ✏️
               </button>
 
+              {/* 새 화 추가 — 마지막 화에서만 표시 */}
+              {episodeIndex === totalEpisodes - 1 && (
+                <button
+                  onClick={() => router.push(`/write/${storyId}/new`)}
+                  className="text-white/40 text-xs hover:text-white transition-colors px-1.5 py-1 rounded border border-white/10 hover:border-white/30"
+                  title="새 화 추가"
+                >
+                  ➕
+                </button>
+              )}
+
               {/* 홈 카드 대표 이미지 변경 — 1화에서만 */}
               {episodeIndex === 0 && (
                 <label
