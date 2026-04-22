@@ -152,12 +152,11 @@ export default function HomeFeed() {
         </div>
 
         {/* 카드 콘텐츠 — 하단 */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-5 pb-8 safe-area-bottom">
-
+        <div className="absolute inset-x-0 bottom-0 z-10 px-5 pb-6">
           {/* 장르 + 통계 */}
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2">
             <span
-              className="text-xs font-bold px-3 py-1 rounded-full"
+              className="text-xs font-bold px-2.5 py-1 rounded-full"
               style={{
                 backgroundColor: `${genreColor}25`,
                 color: genreColor,
@@ -173,31 +172,26 @@ export default function HomeFeed() {
           </div>
 
           {/* 제목 */}
-          <h1 className="text-white font-black text-4xl leading-none mb-2 tracking-tight">
+          <h1 className="text-white font-black text-3xl leading-tight mb-1 tracking-tight line-clamp-2">
             {story.title}
           </h1>
 
           {/* 작가 */}
-          <p className="text-white/40 text-sm mb-4">by {story.author}</p>
-
-          {/* 훅 */}
-          <p className="text-white/70 text-sm leading-relaxed mb-5 max-w-xs line-clamp-1">
-            {story.hook}
-          </p>
+          <p className="text-white/40 text-xs mb-4">by {story.author}</p>
 
           {/* 버튼 */}
           <div className="flex gap-2">
             <button
               onClick={() => router.push(`/reader/${story.id}/0`)}
-              className="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm tracking-wide hover:bg-white/90 active:scale-95 transition-all"
+              className="flex-1 py-3 rounded-2xl bg-white text-black font-bold text-sm tracking-wide hover:bg-white/90 active:scale-95 transition-all"
             >
               1화부터 읽기
             </button>
             <button
               onClick={() => router.push("/write/new")}
-              className="px-4 py-3.5 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/20 active:scale-95 transition-all backdrop-blur-sm"
+              className="px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/20 active:scale-95 transition-all"
             >
-              ✍️ 새 작품
+              ✍️
             </button>
           </div>
         </div>
