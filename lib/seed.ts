@@ -4,7 +4,118 @@ import { CURRENT_DATA_VERSION } from "./store";
 
 export const SEED_DATA: AppState = {
   dataVersion: CURRENT_DATA_VERSION,
-  comments: [],
+  comments: [
+    {
+      id: "seed-comment-1",
+      storyId: "story-1",
+      universeId: "u1",
+      episodeIndex: 0,
+      author: "별빛독자",
+      content: "첫 줄부터 소름이 돋았어요. '오지 마'라는 신호... 이게 경고인지 함정인지 모르겠어서 더 무서워요.",
+      likes: 8,
+      dislikes: 0,
+      createdAt: "2025-01-15T09:23:00.000Z"
+    },
+    {
+      id: "seed-comment-2",
+      storyId: "story-1",
+      universeId: "u1",
+      episodeIndex: 0,
+      author: "우주덕후",
+      content: "2047년 설정이 너무 현실적이에요. 지금으로부터 20년 후면 진짜 이런 기지가 있을 것 같아서 더 몰입됨.",
+      likes: 5,
+      dislikes: 0,
+      createdAt: "2025-01-15T11:45:00.000Z"
+    },
+    {
+      id: "seed-comment-3",
+      storyId: "story-1",
+      universeId: "u1",
+      episodeIndex: 1,
+      author: "SF마니아",
+      content: "오태석 사령관이 처음부터 알고 있었다는 거잖아요? 뭔가 엄청난 음모가 있는 것 같아요.",
+      likes: 12,
+      dislikes: 1,
+      createdAt: "2025-01-16T08:30:00.000Z"
+    },
+    {
+      id: "seed-comment-4",
+      storyId: "story-1",
+      universeId: "u1",
+      episodeIndex: 2,
+      author: "독서광",
+      content: "경고라는 말이 너무 섬뜩해요. 살아있는데 왜 구조 요청이 아니라 경고를 보냈을까요.",
+      likes: 6,
+      dislikes: 0,
+      createdAt: "2025-01-17T14:20:00.000Z"
+    },
+    {
+      id: "seed-comment-5",
+      storyId: "story-1",
+      universeId: "u1",
+      episodeIndex: 3,
+      author: "밤새독서",
+      content: "정유진 대장 목소리가 나왔을 때 진짜 충격. 7개월 전에 사망 처리된 사람이 살아있다니. 다음 화 언제 나와요?",
+      likes: 15,
+      dislikes: 0,
+      createdAt: "2025-01-18T22:10:00.000Z"
+    },
+    {
+      id: "seed-comment-6",
+      storyId: "story-1",
+      universeId: "u1-remix1",
+      episodeIndex: 0,
+      author: "리믹스팬",
+      content: "원작보다 이 방향이 더 좋아요! 하은이 서명 거부하는 장면에서 심장이 쿵 내려앉았어요.",
+      likes: 9,
+      dislikes: 1,
+      createdAt: "2025-01-19T10:00:00.000Z"
+    },
+    {
+      id: "seed-comment-7",
+      storyId: "story-1",
+      universeId: "u1-remix1",
+      episodeIndex: 0,
+      author: "민준응원단",
+      content: "민준이 같이 하겠다고 할 때 눈물날 뻔 했어요. 혼자가 아니라는 말이 이렇게 크게 느껴질 줄이야.",
+      likes: 7,
+      dislikes: 0,
+      createdAt: "2025-01-19T15:30:00.000Z"
+    },
+    {
+      id: "seed-comment-8",
+      storyId: "story-2",
+      universeId: "u1",
+      episodeIndex: 0,
+      author: "루프러버",
+      content: "루프물 좋아하는데 이건 진짜 감성이 달라요. 혼자만 기억한다는 외로움이 너무 잘 느껴져요.",
+      likes: 4,
+      dislikes: 0,
+      createdAt: "2025-01-20T09:00:00.000Z"
+    },
+    {
+      id: "seed-comment-9",
+      storyId: "story-3",
+      universeId: "u1",
+      episodeIndex: 0,
+      author: "무협마니아",
+      content: "말뚝 3년째 안 뽑힌다는 설정 실화냐ㅋㅋㅋ 근데 낙법을 무의식적으로 썼다는 복선이 궁금해요.",
+      likes: 6,
+      dislikes: 0,
+      createdAt: "2025-01-21T11:00:00.000Z"
+    },
+    {
+      id: "seed-comment-10",
+      storyId: "story-4",
+      universeId: "u1",
+      episodeIndex: 0,
+      author: "군필자",
+      content: "전역 하루 전날 미끄러져서 훈련소로 회귀ㅋㅋㅋ 이 설정 천재아님? 군대 다녀온 사람으로서 너무 공감돼요.",
+      likes: 11,
+      dislikes: 0,
+      createdAt: "2025-01-22T20:00:00.000Z"
+    }
+  ],
   stories: [
     {
       id: "story-1",
@@ -244,7 +355,7 @@ DONT COME.
               index: 3,
               title: "4화 — 두 번째 신호",
               remixAllowed: true,
-              likes: 0,
+              likes: 100,
               dislikes: 0,
               content: `사흘 뒤, 두 번째 신호가 왔다.
 
@@ -288,6 +399,67 @@ DONT COME.
 
 오태석에게는 보고하지 않을 것이다. 이번엔.`,
               coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791016/jys5ukhkxbohmofrqemk.png",
+            }
+          ]
+        },
+        {
+          id: "u1-remix1",
+          label: "리믹스 #1",
+          isMain: false,
+          branchFromEpisode: 3,
+          episodes: [
+            {
+              index: 0,
+              title: "4화 리믹스 — 하은의 선택",
+              remixAllowed: true,
+              likes: 160,
+              dislikes: 2,
+              coverImageUrl: "https://res.cloudinary.com/df96vu6dd/image/upload/v1776791016/jys5ukhkxbohmofrqemk.png",
+              content: `하은은 파일을 삭제하지 않았다.
+
+오태석이 기밀 유지 서약서에 서명을 요구했을 때, 하은은 펜을 들었다. 내려놓았다. 다시 들었다.
+
+그리고 서명하지 않았다.
+
+"죄송합니다. 못 하겠습니다."
+
+오태석이 처음으로 표정이 흔들렸다.
+
+"김하은."
+
+"정유진 대장이 살아있습니다. 그 사실을 덮을 수 없어요."
+
+침묵이 길었다. 오태석이 천천히 말했다.
+
+"네가 무슨 짓을 하는지 알고 있냐."
+
+"알고 있습니다."
+
+하은은 집무실을 나왔다. 복도를 걸으면서 손이 떨렸다. 심장이 빠르게 뛰었다.
+
+민준이 복도 끝에서 기다리고 있었다.
+
+"어떻게 됐어요?"
+
+하은은 멈췄다.
+
+"서명 안 했어."
+
+민준이 눈을 크게 떴다.
+
+"그럼 이제 어떻게 해요?"
+
+하은은 개인 단말기를 꺼냈다. 정유진의 목소리가 담긴 파일. 암호화된 파일.
+
+"알려야지. 제대로."
+
+민준이 잠시 하은을 바라봤다. 그리고 말했다.
+
+"저도 같이 할게요."
+
+하은은 그 말이 예상보다 훨씬 크게 느껴졌다.
+
+혼자가 아니었다.`
             }
           ]
         }
