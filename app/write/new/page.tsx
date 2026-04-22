@@ -381,9 +381,10 @@ export default function NewStoryPage() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs tracking-widest block mb-2">
-              배경 설정 <span className="text-white/20">(선택)</span>
+            <label className="text-white/40 text-xs tracking-widest block mb-1">
+              세계관 / 배경 <span className="text-white/20">(선택)</span>
             </label>
+            <p className="text-white/20 text-xs mb-2">전체 작품의 배경과 세계관을 적어주세요</p>
             <input
               value={setting}
               onChange={(e) => setSetting(e.target.value)}
@@ -393,13 +394,14 @@ export default function NewStoryPage() {
           </div>
 
           <div>
-            <label className="text-white/40 text-xs tracking-widest block mb-2">
-              핵심 갈등 <span className="text-white/20">(선택)</span>
+            <label className="text-white/40 text-xs tracking-widest block mb-1">
+              이번 화에서 일어날 일 <span className="text-white/20">(선택)</span>
             </label>
+            <p className="text-white/20 text-xs mb-2">이 화에서 반드시 일어나야 할 사건이나 장면을 적어주세요. 구체적일수록 AI가 잘 따라요</p>
             <textarea
               value={conflict}
               onChange={(e) => setConflict(e.target.value)}
-              placeholder="예: 사망 처리된 탐사대원의 신호를 수신했지만 상부가 은폐하려 함"
+              placeholder="예: 하은이 수상한 신호를 수신하고, 상관에게 보고할지 숨길지 고민한다"
               rows={3}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm resize-none"
             />
