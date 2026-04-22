@@ -14,8 +14,15 @@ const GENERAL_GENRES = [
   "무협", "스포츠", "음악", "요리", "여행",
 ];
 
-const ADULT_GENRES = [
-  "성인로맨스", "성인판타지", "성인드라마",
+const ADULT_GENRES = ["성인로맨스", "성인판타지", "성인드라마"];
+
+const STYLE_PRESETS = [
+  { label: "빠른 전개", desc: "긴장감 있고 속도감 있는 문체" },
+  { label: "감성적", desc: "섬세한 감정 묘사, 여운 있는 문장" },
+  { label: "하드보일드", desc: "건조하고 냉정한 시점, 간결한 문장" },
+  { label: "유머러스", desc: "코믹한 상황, 가벼운 톤" },
+  { label: "서정적", desc: "시적인 표현, 풍경 묘사 중심" },
+  { label: "스릴러풍", desc: "긴장감 극대화, 반전 중심" },
 ];
 
 export default function NewStoryPage() {
@@ -23,20 +30,27 @@ export default function NewStoryPage() {
   const { nickname } = useMyNickname();
   const [appState, setAppState] = useState<AppState | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [step, setStep] = useState<"info" | "write">("info");
+  const [step, setStep] = useState<"info" | "guide" | "write">("info");
 
   // info 단계
   const [title, setTitle] = useState("");
   const [genres, setGenres] = useState<string[]>(["SF"]);
   const [hook, setHook] = useState("");
   const [authorName, setAuthorName] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+
+  // guide 단계
+  const [protagonist, setProtagonist] = useState("");
+  const [setting, setSetting] = useState("");
+  const [conflict, setConflict] = useState("");
+  const [writingStyle, setWritingStyle] = useState("");
+  const [customStyle, setCustomStyle] = useState("");
 
   // write 단계
   const [content, setContent] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
-  const [aiDirection, setAiDirection] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [showAiInput, setShowAiInput] = useState(false);
+  const [aiDirection, setAiDirection] = useState("");
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -50,7 +64,6 @@ export default function NewStoryPage() {
       alert("성인 장르는 서비스 준비 중입니다.");
       return;
     }
-
     setGenres((prev) => {
       if (prev.includes(g)) {
         if (prev.length === 1) return prev;
@@ -66,6 +79,19 @@ export default function NewStoryPage() {
   const handleAiGenerate = async () => {
     if (!title.trim()) return;
     setAiLoading(true);
+
+    const styleText = customStyle.trim() || writingStyle;
+    const guideContext = [
+      protagonist && `주인공: ${protagonist}`,
+      setting && `배경: ${setting}`,
+      conflict && `핵심 갈등: ${conflict}`,
+      styleText && `작가 스타일: ${styleText}`,
+    ].filter(Boolean).join("\n");
+
+    const direction = aiDirection.trim()
+      ? `${aiDirection}\n\n${guideContext}`
+      : guideContext || `${genreString} 장르의 웹소설 1화. 독자를 몰입시키는 강렬한 오프닝.`;
+
     try {
       const res = await fetch("/api/remix", {
         method: "POST",
@@ -74,7 +100,7 @@ export default function NewStoryPage() {
           storyTitle: title,
           previousEpisodes: [],
           currentEpisode: "",
-          direction: aiDirection || `${genreString} 장르의 웹소설 1화. 독자를 몰입시키는 강렬한 오프닝.`,
+          direction,
         }),
       });
       const data = await res.json();
@@ -151,17 +177,12 @@ export default function NewStoryPage() {
     return (
       <div className="w-full min-h-screen bg-black text-white">
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
-          <button
-            onClick={() => router.back()}
-            className="text-white/50 text-sm hover:text-white transition-colors"
-          >
+          <button onClick={() => router.back()} className="text-white/50 text-sm hover:text-white transition-colors">
             ← 뒤로
           </button>
-          <p className="text-white/80 text-sm font-medium">새 작품</p>
+          <p className="text-white/80 text-sm font-medium">새 작품 (1/3)</p>
           <button
-            onClick={() => {
-              if (title.trim() && hook.trim()) setStep("write");
-            }}
+            onClick={() => { if (title.trim() && hook.trim()) setStep("guide"); }}
             disabled={!title.trim() || !hook.trim()}
             className="text-sm font-medium text-white/60 hover:text-white disabled:opacity-20 transition-colors"
           >
@@ -170,82 +191,57 @@ export default function NewStoryPage() {
         </div>
 
         <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto">
-          {/* 제목 */}
           <div>
             <label className="text-white/40 text-xs tracking-widest block mb-2">제목</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="작품 제목"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
-            />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="작품 제목"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base" />
           </div>
 
-          {/* 작가명 */}
           <div>
             <label className="text-white/40 text-xs tracking-widest block mb-2">작가명</label>
-            <input
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              placeholder="작가 이름"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
-            />
+            <input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="작가 이름"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base" />
           </div>
 
-          {/* 장르 */}
           <div>
             <label className="text-white/40 text-xs tracking-widest block mb-3">
               장르 <span className="text-white/20">(최대 3개)</span>
             </label>
-
-            {/* 일반 장르 */}
             <p className="text-white/20 text-xs mb-2 tracking-widest">일반</p>
             <div className="flex flex-wrap gap-2 mb-4">
               {GENERAL_GENRES.map((g) => {
                 const selected = genres.includes(g);
                 const maxed = genres.length >= 3 && !selected;
                 return (
-                  <button
-                    key={g}
-                    onClick={() => toggleGenre(g)}
-                    disabled={maxed}
+                  <button key={g} onClick={() => toggleGenre(g)} disabled={maxed}
                     className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
-                      selected
-                        ? "bg-white text-black border-white font-medium"
-                        : maxed
-                        ? "border-white/5 text-white/20 cursor-not-allowed"
-                        : "border-white/20 text-white/50 hover:border-white/40 hover:text-white/80"
-                    }`}
-                  >
+                      selected ? "bg-white text-black border-white font-medium"
+                      : maxed ? "border-white/5 text-white/20 cursor-not-allowed"
+                      : "border-white/20 text-white/50 hover:border-white/40 hover:text-white/80"
+                    }`}>
                     {g}
                   </button>
                 );
               })}
             </div>
-
-            {/* 성인 장르 */}
-            <p className="text-white/20 text-xs mb-2 tracking-widest flex items-center gap-2">
-              성인
-              <span className="text-white/20 text-xs">🔞 19+</span>
-            </p>
+            <p className="text-white/20 text-xs mb-2 tracking-widest">성인 🔞</p>
             <div className="flex flex-wrap gap-2">
               {ADULT_GENRES.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => toggleGenre(g)}
-                  className="px-3 py-1.5 rounded-full text-sm border border-white/10 text-white/20 cursor-not-allowed"
-                >
+                <button key={g} onClick={() => toggleGenre(g)}
+                  className="px-3 py-1.5 rounded-full text-sm border border-white/10 text-white/20 cursor-not-allowed">
                   🔒 {g}
                 </button>
               ))}
             </div>
-
-            {genres.length > 0 && (
-              <p className="text-white/30 text-xs mt-3">선택됨: {genreString}</p>
-            )}
+            {genres.length > 0 && <p className="text-white/30 text-xs mt-3">선택됨: {genreString}</p>}
           </div>
 
-          {/* 대표 이미지 */}
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">한 줄 소개</label>
+            <input value={hook} onChange={(e) => setHook(e.target.value)} placeholder="독자를 끌어당기는 한 문장"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base" />
+          </div>
+
           <div>
             <label className="text-white/40 text-xs tracking-widest block mb-3">
               대표 이미지 <span className="text-white/20">(선택 · 홈 카드 배경)</span>
@@ -259,16 +255,104 @@ export default function NewStoryPage() {
               content={title + " " + hook}
             />
           </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* 한 줄 소개 */}
+  // ── GUIDE 단계 ─────────────────────────────────────
+  if (step === "guide") {
+    return (
+      <div className="w-full min-h-screen bg-black text-white">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+          <button onClick={() => setStep("info")} className="text-white/50 text-sm hover:text-white transition-colors">
+            ← 뒤로
+          </button>
+          <p className="text-white/80 text-sm font-medium">스토리 가이드 (2/3)</p>
+          <button
+            onClick={() => setStep("write")}
+            className="text-sm font-medium text-white/60 hover:text-white transition-colors"
+          >
+            다음 →
+          </button>
+        </div>
+
+        <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto">
+
+          <div className="px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+            <p className="text-white/50 text-xs leading-relaxed">
+              작성하지 않아도 돼요. 입력할수록 AI가 더 정확하게 초안을 만들어줍니다.
+            </p>
+          </div>
+
           <div>
-            <label className="text-white/40 text-xs tracking-widest block mb-2">한 줄 소개</label>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">
+              주인공 <span className="text-white/20">(선택)</span>
+            </label>
             <input
-              value={hook}
-              onChange={(e) => setHook(e.target.value)}
-              placeholder="독자를 끌어당기는 한 문장"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-base"
+              value={protagonist}
+              onChange={(e) => setProtagonist(e.target.value)}
+              placeholder="예: 27세 여성 우주통신사, 내성적이고 집요한 성격"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm"
             />
+          </div>
+
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">
+              배경 설정 <span className="text-white/20">(선택)</span>
+            </label>
+            <input
+              value={setting}
+              onChange={(e) => setSetting(e.target.value)}
+              placeholder="예: 2047년 화성 탐사 이후 지구 대기권 밖 통신 기지"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-2">
+              핵심 갈등 <span className="text-white/20">(선택)</span>
+            </label>
+            <textarea
+              value={conflict}
+              onChange={(e) => setConflict(e.target.value)}
+              placeholder="예: 사망 처리된 탐사대원의 신호를 수신했지만 상부가 은폐하려 함"
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-white/40 text-xs tracking-widest block mb-3">
+              작가 스타일 <span className="text-white/20">(선택)</span>
+            </label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {STYLE_PRESETS.map((s) => (
+                <button
+                  key={s.label}
+                  onClick={() => setWritingStyle(writingStyle === s.label ? "" : s.label)}
+                  className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
+                    writingStyle === s.label
+                      ? "bg-white/15 border-white/40 text-white/90"
+                      : "border-white/10 text-white/40 hover:border-white/30 hover:text-white/60"
+                  }`}
+                  title={s.desc}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <input
+              value={customStyle}
+              onChange={(e) => setCustomStyle(e.target.value)}
+              placeholder="예: 무라카미 하루키 스타일, 1인칭 시점, 짧은 문장"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm"
+            />
+            {(writingStyle || customStyle) && (
+              <p className="text-white/30 text-xs mt-2">
+                적용될 스타일: {customStyle || writingStyle}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -279,15 +363,12 @@ export default function NewStoryPage() {
   return (
     <div className="w-full min-h-screen bg-black text-white">
       <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
-        <button
-          onClick={() => setStep("info")}
-          className="text-white/50 text-sm hover:text-white transition-colors"
-        >
+        <button onClick={() => setStep("guide")} className="text-white/50 text-sm hover:text-white transition-colors">
           ← 뒤로
         </button>
         <div className="text-center">
           <p className="text-white/80 text-sm font-medium">{title}</p>
-          <p className="text-white/30 text-xs">1화 작성</p>
+          <p className="text-white/30 text-xs">1화 작성 (3/3)</p>
         </div>
         <button
           onClick={handleCreate}
@@ -299,7 +380,21 @@ export default function NewStoryPage() {
       </div>
 
       <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
-        {/* AI 초안 생성 */}
+
+        {(protagonist || setting || conflict || writingStyle || customStyle) && (
+          <div className="px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+            <p className="text-white/30 text-xs mb-2 tracking-widest">스토리 가이드 적용됨</p>
+            <div className="flex flex-col gap-1">
+              {protagonist && <p className="text-white/40 text-xs">👤 {protagonist}</p>}
+              {setting && <p className="text-white/40 text-xs">🌍 {setting}</p>}
+              {conflict && <p className="text-white/40 text-xs">⚡ {conflict}</p>}
+              {(customStyle || writingStyle) && (
+                <p className="text-white/40 text-xs">✍️ {customStyle || writingStyle}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           {!showAiInput ? (
             <button
@@ -313,9 +408,9 @@ export default function NewStoryPage() {
               <textarea
                 value={aiDirection}
                 onChange={(e) => setAiDirection(e.target.value)}
-                placeholder={`방향을 입력하세요 (선택)\n예: 주인공이 우주 기지에서 이상한 신호를 수신하는 장면으로 시작`}
+                placeholder="추가 방향 입력 (선택) — 가이드 내용이 자동 반영됩니다"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 placeholder-white/20 focus:outline-none focus:border-white/30 text-sm resize-none"
-                rows={3}
+                rows={2}
               />
               <div className="flex gap-2">
                 <button
@@ -327,7 +422,7 @@ export default function NewStoryPage() {
                 </button>
                 <button
                   onClick={() => setShowAiInput(false)}
-                  className="px-4 py-2.5 rounded-xl border border-white/10 text-white/30 text-sm hover:text-white/50"
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-white/30 text-sm"
                 >
                   취소
                 </button>
@@ -336,7 +431,6 @@ export default function NewStoryPage() {
           )}
         </div>
 
-        {/* 본문 */}
         <div>
           <label className="text-white/40 text-xs tracking-widest block mb-2">1화 본문</label>
           <textarea
@@ -349,7 +443,6 @@ export default function NewStoryPage() {
           <p className="text-white/20 text-xs mt-1">{content.length}자</p>
         </div>
 
-        {/* 커버 이미지 — 본문 아래 배치 */}
         <div>
           <label className="text-white/40 text-xs tracking-widest block mb-3">
             커버 이미지 <span className="text-white/20">(선택)</span>
