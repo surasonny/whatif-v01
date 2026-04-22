@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode, Comment } from "@/lib/types";
 import { seedIfEmpty } from "@/lib/seed";
-import { saveState, loadState, deleteEpisode, deleteStory } from "@/lib/store";
+import { saveState, loadState, deleteEpisode, deleteStory, checkCanonWar } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
 import UniversePanel from "@/app/components/UniversePanel";
@@ -127,6 +127,7 @@ export default function ReaderClient() {
     };
     setAppState(updated);
     saveState(updated);
+    checkCanonWar(storyId);
   };
 
   const handleDislike = () => {
@@ -479,6 +480,7 @@ export default function ReaderClient() {
                 storyId={storyId}
                 universeId={universe.id}
                 episodeIndex={episodeIndex}
+                allUniverses={story.universes.map((u) => ({ id: u.id, label: u.label }))}
                 onAddComment={handleAddComment}
                 onLikeComment={handleLikeComment}
                 onDislikeComment={handleDislikeComment}
@@ -554,6 +556,7 @@ export default function ReaderClient() {
         <UniversePanel
           story={story}
           currentUniverseIndex={universeIndex}
+          comments={appState.comments}
           onSelect={(i) => setUniverseIndex(i)}
           onSetMain={(universeId) => {
             if (!appState) return;
