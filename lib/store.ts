@@ -3,7 +3,7 @@
 // hydration mismatch 방지: 이 파일의 함수는 반드시 클라이언트에서만 호출해야 한다.
 // (useEffect 안 또는 이벤트 핸들러 안에서만 사용할 것)
 
-import { AppState, Story } from "./types";
+import { AppState, Comment, MainHistory, Story, Universe } from "./types";
 
 // 현재 데이터 버전 — seed가 바뀌면 이 숫자를 올린다
 // 버전이 다르면 localStorage를 초기화하고 새 seed를 불러온다
@@ -213,4 +213,86 @@ export function canDeleteStory(story: Story): { canDelete: boolean; reason?: str
     };
   }
   return { canDelete: true };
+}
+
+// ─────────────────────────────────────────
+// [정사대전] 유니버스 점수 계산
+// score = 에피소드 좋아요 합 × 0.7 + 댓글 좋아요 합 × 0.3
+// ─────────────────────────────────────────
+export function calcUniverseScore(
+  universe: Universe,
+  comments: Comment[]
+): number {
+  const episodeLikes = universe.episodes.reduce((sum, e) => sum + e.likes, 0);
+  const commentLikes = comments
+    .filter((c) => c.universeId === universe.id)
+    .reduce((sum, c) => sum + c.likes, 0);
+  return episodeLikes * 0.7 + commentLikes * 0.3;
+}
+
+// ─────────────────────────────────────────
+// [정사대전] 정사 교체 조건 확인 및 처리
+//
+// 반환값:
+// - challenged: 도전 상태 진입 여부
+// - transferred: 자동 정사 교체 여부
+// - challengerId: 도전/교체한 유니버스 ID
+// ─────────────────────────────────────────
+export function checkCanonWar(
+  storyId: string
+): { challenged: boolean; transferred: boolean; challengerId?: string } {
+  const state = loadState();
+  if (!state) return { challenged: false, transferred: false };
+
+  const storyIndex = state.stories.findIndex((s) => s.id === storyId);
+  if (storyIndex === -1) return { challenged: false, transferred: false };
+
+  const story = state.stories[storyIndex];
+  const mainUniverse = story.universes.find((u) => u.isMain);
+  if (!mainUniverse) return { challenged: false, transferred: false };
+
+  const mainScore = calcUniverseScore(mainUniverse, state.comments);
+
+  let challenged = false;
+  let transferred = false;
+  let challengerId: string | undefined;
+
+  for (const universe of story.universes) {
+    if (universe.isMain) continue;
+
+    const score = calcUniverseScore(universe, state.comments);
+    if (mainScore === 0 && score === 0) continue;
+
+    const ratio = mainScore > 0 ? score / mainScore : score > 0 ? Infinity : 0;
+
+    if (ratio >= 2.0) {
+      // 자동 정사 교체
+      const history: MainHistory = {
+        fromUniverseId: mainUniverse.id,
+        fromUniverseLabel: mainUniverse.label,
+        toUniverseId: universe.id,
+        toUniverseLabel: universe.label,
+        date: new Date().toISOString(),
+        totalLikes: score,
+      };
+      story.universes.forEach((u) => { u.isMain = u.id === universe.id; });
+      universe.challengeStartedAt = null;
+      if (!story.mainHistory) story.mainHistory = [];
+      story.mainHistory.push(history);
+      transferred = true;
+      challengerId = universe.id;
+      break;
+    } else if (ratio >= 1.5) {
+      // 도전 상태 진입 (7일 타이머 시작)
+      if (!universe.challengeStartedAt) {
+        universe.challengeStartedAt = new Date().toISOString();
+        challenged = true;
+        challengerId = universe.id;
+      }
+    }
+  }
+
+  state.stories[storyIndex] = story;
+  saveState(state);
+  return { challenged, transferred, challengerId };
 }

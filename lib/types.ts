@@ -4,6 +4,7 @@ export type Universe = {
   isMain: boolean
   branchFromEpisode: number | null
   episodes: Episode[]
+  challengeStartedAt?: string | null
 }
 
 export type Episode = {
@@ -16,6 +17,15 @@ export type Episode = {
   coverImageUrl?: string
 }
 
+export type MainHistory = {
+  fromUniverseId: string
+  fromUniverseLabel: string
+  toUniverseId: string
+  toUniverseLabel: string
+  date: string
+  totalLikes: number
+}
+
 export type Story = {
   id: string
   title: string
@@ -26,6 +36,7 @@ export type Story = {
   coverImageUrl?: string
   seedVersion: number
   universes: Universe[]
+  mainHistory?: MainHistory[]
 }
 
 export interface Comment {
