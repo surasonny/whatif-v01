@@ -49,8 +49,9 @@ export default function NewStoryPage() {
   // write 단계
   const [content, setContent] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [showAiInput, setShowAiInput] = useState(false);
   const [aiDirection, setAiDirection] = useState("");
+  const [aiMode, setAiMode] = useState<"generate" | "continue" | "edit" | null>(null);
+  const [editStyle, setEditStyle] = useState("");
 
   useEffect(() => {
     const state = seedIfEmpty();
@@ -95,24 +96,43 @@ export default function NewStoryPage() {
     setAiLoading(true);
 
     const styleText = customStyle.trim() || writingStyle;
-
     const characterText = characters
       .filter((c) => c.name.trim())
       .map((c) => `${c.role} ${c.name}${c.desc ? ` (${c.desc})` : ""}`)
       .join(", ");
-
     const guideLines = [
       characterText && `등장인물: ${characterText}`,
       setting && `배경: ${setting}`,
       conflict && `핵심 갈등: ${conflict}`,
       styleText && `작가 스타일: ${styleText}`,
     ].filter(Boolean);
-
     const guideContext = guideLines.join("\n");
 
-    const direction = guideContext
-      ? `${guideContext}${aiDirection.trim() ? `\n\n추가 방향: ${aiDirection.trim()}` : ""}`
-      : aiDirection.trim() || `${genreString} 장르의 웹소설 1화. 독자를 몰입시키는 강렬한 오프닝.`;
+    let finalDirection = "";
+    let prevEpisodes = "";
+    let currentEp = "";
+
+    if (aiMode === "generate") {
+      finalDirection = guideContext
+        ? `${guideContext}${aiDirection.trim() ? `\n\n추가 방향: ${aiDirection.trim()}` : ""}`
+        : aiDirection.trim() || `${genreString} 장르의 웹소설 1화. 독자를 몰입시키는 강렬한 오프닝.`;
+      prevEpisodes = "";
+      currentEp = "";
+    } else if (aiMode === "continue") {
+      prevEpisodes = content.trim();
+      currentEp = "위 내용에 이어서 작성";
+      finalDirection = `이전 내용의 문체와 스타일을 반드시 유지하면서 자연스럽게 이어써줘.${aiDirection.trim() ? `\n추가 방향: ${aiDirection.trim()}` : ""}`;
+    } else if (aiMode === "edit") {
+      prevEpisodes = "";
+      currentEp = content.trim();
+      const editMap: Record<string, string> = {
+        "풍성하게": "스토리와 등장인물을 절대 바꾸지 말고, 묘사와 감정 표현을 더 풍성하고 생생하게 다듬어줘.",
+        "간결하게": "스토리와 등장인물을 절대 바꾸지 말고, 불필요한 부분을 제거해서 더 간결하고 임팩트 있게 다듬어줘.",
+        "긴장감 있게": "스토리와 등장인물을 절대 바꾸지 말고, 긴장감과 속도감을 높여줘. 문장을 더 짧고 강렬하게.",
+        "감성적으로": "스토리와 등장인물을 절대 바꾸지 말고, 감정 묘사를 더 섬세하고 감성적으로 다듬어줘.",
+      };
+      finalDirection = editMap[editStyle] || "스토리와 등장인물을 절대 바꾸지 말고, 문체만 더 자연스럽고 읽기 좋게 다듬어줘.";
+    }
 
     try {
       const res = await fetch("/api/remix", {
@@ -120,11 +140,9 @@ export default function NewStoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitle: title,
-          previousEpisodes: content.trim() ? content.trim() : "",
-          currentEpisode: content.trim() ? "위 내용에 이어서 작성" : "",
-          direction: content.trim()
-            ? `이전 내용의 문체와 스타일을 유지하면서 자연스럽게 이어써줘.\n${direction}`
-            : direction,
+          previousEpisodes: prevEpisodes,
+          currentEpisode: currentEp,
+          direction: finalDirection,
         }),
       });
       const data = await res.json();
@@ -133,7 +151,9 @@ export default function NewStoryPage() {
       console.error(e);
     } finally {
       setAiLoading(false);
-      setShowAiInput(false);
+      setAiMode(null);
+      setAiDirection("");
+      setEditStyle("");
     }
   };
 
@@ -462,23 +482,55 @@ export default function NewStoryPage() {
           </div>
         )}
 
-        {/* AI 초안 생성 */}
-        <div>
-          {!showAiInput ? (
-            <button
-              onClick={() => setShowAiInput(true)}
-              className="w-full py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/30 hover:text-white/60 transition-all"
-            >
-              {content.trim()
-                ? "✦ AI로 이어쓰기"
-                : "✦ AI로 1화 초안 생성"}
-            </button>
-          ) : (
-            <div className="flex flex-col gap-3">
+        {/* AI 도구 */}
+        <div className="flex flex-col gap-2">
+          {/* 버튼 행 */}
+          {aiMode === null && (
+            <div className="flex gap-2">
+              {/* 초안 생성 — 본문 비어있을 때만 */}
+              {!content.trim() && (
+                <button
+                  onClick={() => setAiMode("generate")}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-xs hover:border-white/30 hover:text-white/60 transition-all"
+                >
+                  ✦ 초안 생성
+                </button>
+              )}
+              {/* 이어쓰기 — 본문 있을 때만 */}
+              {content.trim() && (
+                <button
+                  onClick={() => setAiMode("continue")}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-xs hover:border-white/30 hover:text-white/60 transition-all"
+                >
+                  ✦ 이어쓰기
+                </button>
+              )}
+              {/* 편집 — 본문 있을 때만 */}
+              {content.trim() && (
+                <button
+                  onClick={() => setAiMode("edit")}
+                  className="flex-1 py-2.5 rounded-xl border border-amber-400/20 text-amber-400/40 text-xs hover:border-amber-400/40 hover:text-amber-400/70 transition-all"
+                >
+                  ✦ AI 편집
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 초안 생성 / 이어쓰기 패널 */}
+          {(aiMode === "generate" || aiMode === "continue") && (
+            <div className="flex flex-col gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
+              <p className="text-white/40 text-xs">
+                {aiMode === "generate" ? "✦ AI 초안 생성" : "✦ AI 이어쓰기"}
+              </p>
               <textarea
                 value={aiDirection}
                 onChange={(e) => setAiDirection(e.target.value)}
-                placeholder="추가 방향 입력 (선택) — 가이드 내용이 자동 반영됩니다"
+                placeholder={
+                  aiMode === "generate"
+                    ? "추가 방향 입력 (선택) — 가이드 내용이 자동 반영됩니다"
+                    : "이어쓸 방향 입력 (선택) — 이전 문체가 유지됩니다"
+                }
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 placeholder-white/20 focus:outline-none focus:border-white/30 text-sm resize-none"
                 rows={2}
               />
@@ -488,11 +540,48 @@ export default function NewStoryPage() {
                   disabled={aiLoading}
                   className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-all disabled:opacity-50"
                 >
-                  {aiLoading ? "생성 중..." : content.trim() ? "이어쓰기" : "생성하기"}
+                  {aiLoading ? "생성 중..." : aiMode === "generate" ? "생성하기" : "이어쓰기"}
                 </button>
                 <button
-                  onClick={() => setShowAiInput(false)}
+                  onClick={() => { setAiMode(null); setAiDirection(""); }}
                   className="px-4 py-2.5 rounded-xl border border-white/10 text-white/30 text-sm"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 편집 패널 */}
+          {aiMode === "edit" && (
+            <div className="flex flex-col gap-3 p-4 rounded-xl bg-amber-400/5 border border-amber-400/10">
+              <p className="text-amber-400/50 text-xs">✦ AI 편집 — 스토리는 바뀌지 않아요</p>
+              <div className="flex flex-wrap gap-2">
+                {["풍성하게", "간결하게", "긴장감 있게", "감성적으로"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setEditStyle(editStyle === s ? "" : s)}
+                    className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
+                      editStyle === s
+                        ? "bg-amber-400/20 border-amber-400/50 text-amber-400"
+                        : "border-amber-400/20 text-amber-400/40 hover:border-amber-400/40 hover:text-amber-400/70"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAiGenerate}
+                  disabled={aiLoading || !editStyle}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-400/10 text-amber-400/70 text-sm hover:bg-amber-400/20 transition-all disabled:opacity-30"
+                >
+                  {aiLoading ? "편집 중..." : "편집하기"}
+                </button>
+                <button
+                  onClick={() => { setAiMode(null); setEditStyle(""); }}
+                  className="px-4 py-2.5 rounded-xl border border-amber-400/10 text-amber-400/30 text-sm"
                 >
                   취소
                 </button>
