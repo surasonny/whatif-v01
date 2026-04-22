@@ -197,7 +197,7 @@ export default function NewStoryPage() {
   // ── INFO 단계 ──────────────────────────────────────
   if (step === "info") {
     return (
-      <div className="w-full min-h-screen bg-black text-white">
+      <div className="w-full bg-black text-white flex flex-col" style={{ height: "100dvh" }}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
           <button onClick={() => router.back()} className="text-white/50 text-sm hover:text-white transition-colors">
             ← 뒤로
@@ -212,7 +212,7 @@ export default function NewStoryPage() {
           </button>
         </div>
 
-        <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto">
+        <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto flex-1 overflow-y-auto">
           <div>
             <label className="text-white/40 text-xs tracking-widest block mb-2">제목</label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="작품 제목"
@@ -285,7 +285,7 @@ export default function NewStoryPage() {
   // ── GUIDE 단계 ─────────────────────────────────────
   if (step === "guide") {
     return (
-      <div className="w-full min-h-screen bg-black text-white">
+      <div className="w-full bg-black text-white flex flex-col" style={{ height: "100dvh" }}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
           <button onClick={() => setStep("info")} className="text-white/50 text-sm hover:text-white transition-colors">
             ← 뒤로
@@ -299,7 +299,7 @@ export default function NewStoryPage() {
           </button>
         </div>
 
-        <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto">
+        <div className="px-6 py-8 flex flex-col gap-6 max-w-lg mx-auto flex-1 overflow-y-auto">
 
           <div className="px-4 py-3 rounded-xl bg-white/5 border border-white/10">
             <p className="text-white/50 text-xs leading-relaxed">
