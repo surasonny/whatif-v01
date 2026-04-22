@@ -330,7 +330,7 @@ export default function NewStoryPage() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 w-full">
               <label className="text-white/40 text-xs tracking-widest flex-shrink-0">
                 등장인물 <span className="text-white/20">(선택)</span>
               </label>
@@ -342,7 +342,7 @@ export default function NewStoryPage() {
                 + 추가
               </button>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 w-full overflow-hidden">
               {characters.map((char, i) => (
                 <div key={i} className="flex gap-2 items-start">
                   <select
@@ -359,13 +359,13 @@ export default function NewStoryPage() {
                     value={char.name}
                     onChange={(e) => updateCharacter(i, "name", e.target.value)}
                     placeholder="이름"
-                    className="w-24 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm shrink-0"
+                    className="w-20 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm shrink-0"
                   />
                   <input
                     value={char.desc}
                     onChange={(e) => updateCharacter(i, "desc", e.target.value)}
-                    placeholder="특징 (선택)"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm min-w-0"
+                    placeholder="특징 (예: 냉소적, 비밀을 숨기고 있음)"
+                    className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-white/30 text-sm truncate"
                   />
                   {characters.length > 1 && (
                     <button
