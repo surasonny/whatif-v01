@@ -216,6 +216,42 @@ export function canDeleteStory(story: Story): { canDelete: boolean; reason?: str
 }
 
 // ─────────────────────────────────────────
+// [추가] 특정 유니버스에 새 화를 추가한다
+// index는 자동으로 마지막 화 + 1로 설정된다
+// ─────────────────────────────────────────
+export function addEpisode(
+  storyId: string,
+  universeId: string,
+  episode: import("./types").Episode
+): { ok: boolean; reason?: string } {
+  const state = loadState();
+  if (!state) return { ok: false, reason: "상태를 불러올 수 없습니다." };
+
+  const storyIndex = state.stories.findIndex((s) => s.id === storyId);
+  if (storyIndex === -1) return { ok: false, reason: "작품을 찾을 수 없습니다." };
+
+  const uIndex = state.stories[storyIndex].universes.findIndex(
+    (u) => u.id === universeId
+  );
+  if (uIndex === -1) return { ok: false, reason: "유니버스를 찾을 수 없습니다." };
+
+  const universe = state.stories[storyIndex].universes[uIndex];
+  const lastEpisode = universe.episodes[universe.episodes.length - 1];
+  const newIndex = lastEpisode ? lastEpisode.index + 1 : 0;
+
+  const newEpisode: import("./types").Episode = {
+    ...episode,
+    index: newIndex,
+    likes: 0,
+    dislikes: 0,
+  };
+
+  state.stories[storyIndex].universes[uIndex].episodes.push(newEpisode);
+  saveState(state);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────
 // [정사대전] 유니버스 점수 계산
 // score = 에피소드 좋아요 합 × 0.7 + 댓글 좋아요 합 × 0.3
 // ─────────────────────────────────────────
