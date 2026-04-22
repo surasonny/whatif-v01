@@ -421,7 +421,7 @@ export default function NewStoryPage() {
 
   // ── WRITE 단계 ─────────────────────────────────────
   return (
-    <div className="w-full min-h-screen bg-black text-white">
+    <div className="w-full bg-black text-white flex flex-col" style={{ height: "100dvh" }}>
       <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
         <button onClick={() => setStep("guide")} className="text-white/50 text-sm hover:text-white transition-colors">
           ← 뒤로
@@ -439,7 +439,7 @@ export default function NewStoryPage() {
         </button>
       </div>
 
-      <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto">
+      <div className="px-6 py-6 flex flex-col gap-6 max-w-lg mx-auto flex-1 overflow-y-auto pb-28">
 
         {(characters.filter((c) => c.name.trim()).length > 0 || setting || conflict || writingStyle || customStyle) && (
           <div className="px-4 py-3 rounded-xl bg-white/5 border border-white/10">
@@ -507,7 +507,7 @@ export default function NewStoryPage() {
           <p className="text-white/20 text-xs mt-1">{content.length}자</p>
         </div>
 
-        <div className="sticky bottom-0 bg-black border-t border-white/10 py-4 -mx-6 px-6">
+        <div className="flex-shrink-0 bg-black border-t border-white/10 py-4 px-6">
           <button
             onClick={handleCreate}
             disabled={!content.trim()}
