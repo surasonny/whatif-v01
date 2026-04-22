@@ -310,13 +310,14 @@ export default function NewStoryPage() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-white/40 text-xs tracking-widest">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-white/40 text-xs tracking-widest flex-shrink-0">
                 등장인물 <span className="text-white/20">(선택)</span>
               </label>
               <button
                 onClick={addCharacter}
-                className="text-xs text-white/30 hover:text-white/60 border border-white/10 hover:border-white/30 rounded-lg px-2 py-1 transition-all"
+                disabled={characters.length >= 5}
+                className="text-white/30 text-xs hover:text-white/60 transition-colors px-2 py-1 rounded border border-white/10 hover:border-white/30 flex-shrink-0 disabled:opacity-20 disabled:cursor-not-allowed"
               >
                 + 추가
               </button>
