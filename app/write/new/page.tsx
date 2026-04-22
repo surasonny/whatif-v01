@@ -120,9 +120,11 @@ export default function NewStoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitle: title,
-          previousEpisodes: [],
-          currentEpisode: "",
-          direction,
+          previousEpisodes: content.trim() ? content.trim() : "",
+          currentEpisode: content.trim() ? "위 내용에 이어서 작성" : "",
+          direction: content.trim()
+            ? `이전 내용의 문체와 스타일을 유지하면서 자연스럽게 이어써줘.\n${direction}`
+            : direction,
         }),
       });
       const data = await res.json();
@@ -459,13 +461,16 @@ export default function NewStoryPage() {
           </div>
         )}
 
+        {/* AI 초안 생성 */}
         <div>
           {!showAiInput ? (
             <button
               onClick={() => setShowAiInput(true)}
               className="w-full py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/30 hover:text-white/60 transition-all"
             >
-              ✦ AI로 1화 초안 생성
+              {content.trim()
+                ? "✦ AI로 이어쓰기"
+                : "✦ AI로 1화 초안 생성"}
             </button>
           ) : (
             <div className="flex flex-col gap-3">
@@ -482,7 +487,7 @@ export default function NewStoryPage() {
                   disabled={aiLoading}
                   className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-all disabled:opacity-50"
                 >
-                  {aiLoading ? "생성 중..." : "생성하기"}
+                  {aiLoading ? "생성 중..." : content.trim() ? "이어쓰기" : "생성하기"}
                 </button>
                 <button
                   onClick={() => setShowAiInput(false)}
