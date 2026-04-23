@@ -9,6 +9,7 @@ import SnapshotCard from "@/app/components/SnapshotCard";
 import UniversePanel from "@/app/components/UniversePanel";
 import CanonWarAlert from "@/app/components/CanonWarAlert";
 import VotePanel from "@/app/components/VotePanel";
+import LikeFloating from "@/app/components/LikeFloating";
 import { Vote } from "@/lib/types";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 
@@ -27,6 +28,7 @@ export default function ReaderClient() {
   const [showUniversePanel, setShowUniversePanel] = useState(false);
   const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
   const [showVotePanel, setShowVotePanel] = useState(false);
+  const [likeFloat, setLikeFloat] = useState<{ x: number; y: number } | null>(null);
   const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
@@ -345,6 +347,23 @@ export default function ReaderClient() {
             <div className="text-center">
               <p className="text-white/80 text-sm font-medium">{story.title}</p>
               <p className="text-white/40 text-xs">{universe.label}</p>
+              {totalUniverses > 1 && (() => {
+                const mainU = story.universes.find((u) => u.isMain);
+                const mainLikes = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
+                if (mainLikes === 0) return null;
+                const topRatio = story.universes.reduce((max, u) => {
+                  if (u.isMain) return max;
+                  const uLikes = u.episodes.reduce((s, e) => s + e.likes, 0);
+                  return Math.max(max, mainLikes > 0 ? uLikes / mainLikes : 0);
+                }, 0);
+                if (topRatio >= 2.0) return (
+                  <span className="text-xs text-red-400/80 animate-pulse">⚔️ 정사 전환 가능</span>
+                );
+                if (topRatio >= 1.5) return (
+                  <span className="text-xs text-amber-400/70">🔥 정사 도전 중</span>
+                );
+                return null;
+              })()}
             </div>
             <div className="text-white/40 text-xs text-right">
               <p>{episodeIndex + 1} / {totalEpisodes}화</p>
@@ -549,7 +568,7 @@ export default function ReaderClient() {
 
               <div className="mt-12 mb-4 flex items-center gap-4">
                 <button
-                  onClick={handleLike}
+                  onClick={(e) => { handleLike(); setLikeFloat({ x: e.clientX, y: e.clientY }); }}
                   className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-white/60 text-sm hover:border-white/50 hover:text-white transition-all active:scale-95"
                 >
                   <span>👍</span>
@@ -649,6 +668,14 @@ export default function ReaderClient() {
           universe={universe}
           episode={episode}
           onClose={() => setShowSnapshot(false)}
+        />
+      )}
+
+      {likeFloat && (
+        <LikeFloating
+          x={likeFloat.x}
+          y={likeFloat.y}
+          onDone={() => setLikeFloat(null)}
         />
       )}
 

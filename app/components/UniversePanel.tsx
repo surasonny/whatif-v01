@@ -246,19 +246,27 @@ export default function UniversePanel({
                 </div>
               );
             })()}
-            {onShowVote && (
-              <div className="mb-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onShowVote?.();
-                  }}
-                  className="w-full py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-bold"
-                >
-                  ⚔ 독자 투표
-                </button>
-              </div>
-            )}
+            {onShowVote && (() => {
+              const mainU = story.universes.find((u) => u.isMain);
+              const mainLikes = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
+              const has150 = story.universes.some((u) => {
+                if (u.isMain) return false;
+                const uLikes = u.episodes.reduce((s, e) => s + e.likes, 0);
+                return mainLikes > 0 && uLikes / mainLikes >= 1.5;
+              });
+              if (!has150) return null;
+              const myVote = votes?.find((v: any) => v.storyId === story.id && v.voter === (voterNickname ?? ""));
+              return (
+                <div className="mb-4">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onShowVote(); }}
+                    className="w-full py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-bold hover:bg-amber-400/20 transition-all animate-pulse"
+                  >
+                    {myVote ? "⚔ 투표 현황 보기" : "⚔ 독자 투표 참여하기"}
+                  </button>
+                </div>
+              );
+            })()}
             {story.universes.map((universe: Universe, i: number) => {
               const isCurrentMain = universe.isMain;
               const isSelected = i === currentUniverseIndex;
@@ -268,6 +276,9 @@ export default function UniversePanel({
               // 도전 상태 계산
               const ratio = mainScore > 0 ? score / mainScore : 0;
               const isChallenger = !isCurrentMain && ratio >= 1.5;
+              const rawMainLikes = mainUniverse ? mainUniverse.episodes.reduce((s, e) => s + e.likes, 0) : 0;
+              const rawUniverseLikes = universe.episodes.reduce((s, e) => s + e.likes, 0);
+              const isCanonReady = !isCurrentMain && rawMainLikes > 0 && rawUniverseLikes / rawMainLikes >= 2.0;
               const isChallenged = isCurrentMain && story.universes.some((u) => {
                 if (u.isMain) return false;
                 const s = calcUniverseScore(u, comments);
@@ -318,9 +329,14 @@ export default function UniversePanel({
                           ⚔ 도전받는 중
                         </span>
                       )}
-                      {isChallenger && (
+                      {isChallenger && !isCanonReady && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/20">
                           🔥 정사 도전 중
+                        </span>
+                      )}
+                      {isCanonReady && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-400/20 text-red-400 border border-red-400/30 animate-pulse">
+                          ⚔️ 정사 전환 가능
                         </span>
                       )}
                       {challengeFailed && (
