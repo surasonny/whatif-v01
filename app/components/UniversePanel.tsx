@@ -247,15 +247,17 @@ export default function UniversePanel({
               );
             })()}
             {onShowVote && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShowVote();
-                }}
-                className="w-full py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-bold hover:bg-amber-400/20 transition-all animate-pulse mb-4"
-              >
-                ⚔ 독자 투표 참여하기 (테스트)
-              </button>
+              <div className="mb-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowVote?.();
+                  }}
+                  className="w-full py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-bold"
+                >
+                  ⚔ 독자 투표
+                </button>
+              </div>
             )}
             {story.universes.map((universe: Universe, i: number) => {
               const isCurrentMain = universe.isMain;
