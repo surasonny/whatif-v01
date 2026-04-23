@@ -31,6 +31,7 @@ export default function NewEpisodeClient() {
   // AI 도구
   const [aiMode, setAiMode] = useState<"generate" | "continue" | "edit" | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiStatus, setAiStatus] = useState("생성 중...");
   const [aiDirection, setAiDirection] = useState("");
   const [editStyle, setEditStyle] = useState("");
 
@@ -88,6 +89,7 @@ export default function NewEpisodeClient() {
   const handleAiGenerate = async () => {
     if (!story) return;
     setAiLoading(true);
+    setAiStatus("스토리 설계 중...");
 
     const styleText = customStyle.trim() || writingStyle;
     const characterText = characters
@@ -135,6 +137,7 @@ export default function NewEpisodeClient() {
     }
 
     try {
+      setAiStatus("초안 생성 중...");
       const res = await fetch("/api/remix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,6 +149,7 @@ export default function NewEpisodeClient() {
         }),
       });
       const data = await res.json();
+      setAiStatus("리라이팅 중...");
       if (data.content) setContent((prev) =>
         aiMode === "continue" ? prev + "\n\n" + data.content : data.content
       );
@@ -371,7 +375,7 @@ export default function NewEpisodeClient() {
                 <div className="flex gap-2">
                   <button onClick={handleAiGenerate} disabled={aiLoading}
                     className="flex-1 py-2.5 rounded-xl bg-white/10 text-white/70 text-sm hover:bg-white/20 transition-all disabled:opacity-50">
-                    {aiLoading ? "생성 중..." : aiMode === "generate" ? "생성하기" : "이어쓰기"}
+                    {aiLoading ? aiStatus : aiMode === "generate" ? "생성하기" : "이어쓰기"}
                   </button>
                   <button onClick={() => { setAiMode(null); setAiDirection(""); }}
                     className="px-4 py-2.5 rounded-xl border border-white/10 text-white/30 text-sm">
@@ -399,7 +403,7 @@ export default function NewEpisodeClient() {
                 <div className="flex gap-2">
                   <button onClick={handleAiGenerate} disabled={aiLoading || !editStyle}
                     className="flex-1 py-2.5 rounded-xl bg-amber-400/10 text-amber-400/70 text-sm hover:bg-amber-400/20 transition-all disabled:opacity-30">
-                    {aiLoading ? "편집 중..." : "편집하기"}
+                    {aiLoading ? aiStatus : "편집하기"}
                   </button>
                   <button onClick={() => { setAiMode(null); setEditStyle(""); }}
                     className="px-4 py-2.5 rounded-xl border border-amber-400/10 text-amber-400/30 text-sm">
