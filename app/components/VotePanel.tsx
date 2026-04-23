@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { Story, Vote } from "@/lib/types";
-import { calcUniverseScore } from "@/lib/store";
 
 interface Props {
   story: Story;
@@ -15,27 +13,23 @@ interface Props {
 
 export default function VotePanel({
   story,
-  comments,
   votes,
   voterNickname,
   onVote,
   onClose,
 }: Props) {
   const mainUniverse = story.universes.find((u) => u.isMain);
-  const mainScore = Math.round(mainUniverse ? calcUniverseScore(mainUniverse, comments) : 0);
 
-  // 내가 이미 투표했는지
   const myVote = votes.find(
     (v) => v.storyId === story.id && v.voter === voterNickname
   );
 
-  // 각 유니버스 득표수
   const getVoteCount = (universeId: string) =>
     votes.filter((v) => v.storyId === story.id && v.universeId === universeId).length;
 
   const totalVotes = votes.filter((v) => v.storyId === story.id).length;
 
-  // 150% 이상 도전자들 (raw likes 기준)
+  // raw likes 기준 150% 이상인 도전자들
   const mainLikesTotal = mainUniverse
     ? mainUniverse.episodes.reduce((s, e) => s + (Number(e.likes) || 0), 0)
     : 0;
@@ -62,13 +56,12 @@ export default function VotePanel({
         <div className="text-center mb-6">
           <p className="text-amber-400 font-black text-lg mb-1">⚔ 독자 투표</p>
           <p className="text-white/40 text-xs">
-            200% 조건 달성 — 독자가 새 정사를 결정합니다
+            150% 조건 달성 — 독자가 새 정사를 결정합니다
           </p>
           <p className="text-white/20 text-xs mt-1">총 {totalVotes}명 참여</p>
         </div>
 
         <div className="flex flex-col gap-3">
-          {/* 현재 정사 */}
           {mainUniverse && (
             <div
               onClick={() => !myVote && onVote(mainUniverse.id)}
@@ -101,7 +94,6 @@ export default function VotePanel({
             </div>
           )}
 
-          {/* 도전자들 */}
           {challengers.map((u) => {
             const voteCount = getVoteCount(u.id);
             const pct = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
@@ -141,14 +133,10 @@ export default function VotePanel({
         </div>
 
         {myVote && (
-          <p className="text-center text-white/20 text-xs mt-4">
-            이미 투표하셨습니다
-          </p>
+          <p className="text-center text-white/20 text-xs mt-4">이미 투표하셨습니다</p>
         )}
         {!myVote && !voterNickname && (
-          <p className="text-center text-white/20 text-xs mt-4">
-            닉네임을 설정하면 투표할 수 있습니다
-          </p>
+          <p className="text-center text-white/20 text-xs mt-4">닉네임을 설정하면 투표할 수 있습니다</p>
         )}
       </div>
     </div>

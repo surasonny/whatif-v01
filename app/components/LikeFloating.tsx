@@ -5,29 +5,26 @@ import { useEffect, useState } from "react";
 interface Props {
   x: number;
   y: number;
-  onDone: () => void;
+  id: number;
 }
 
-export default function LikeFloating({ x, y, onDone }: Props) {
-  const [visible, setVisible] = useState(true);
+export default function LikeFloating({ x, y }: Props) {
+  const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setVisible(false);
-      setTimeout(onDone, 300);
-    }, 800);
+    const t = setTimeout(() => setGone(true), 50);
     return () => clearTimeout(t);
-  }, [onDone]);
+  }, []);
 
   return (
     <div
-      className="fixed z-50 pointer-events-none font-bold text-amber-400 text-sm"
+      className="fixed z-50 pointer-events-none select-none font-bold text-orange-400 text-sm"
       style={{
-        left: x - 20,
+        left: x - 15,
         top: y - 10,
-        transform: visible ? "translateY(-30px)" : "translateY(-60px)",
-        opacity: visible ? 1 : 0,
-        transition: "all 0.8s ease-out",
+        transform: gone ? "translateY(-40px)" : "translateY(0px)",
+        opacity: gone ? 0 : 1,
+        transition: "transform 1s ease-out, opacity 1s ease-out",
       }}
     >
       +1 ⚔

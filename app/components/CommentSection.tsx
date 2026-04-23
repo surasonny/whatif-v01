@@ -222,6 +222,11 @@ function CommentItem({
           <span className="text-white/50 text-xs font-medium">
             {comment.author || "익명"}
           </span>
+          {isBest && comment.likes >= 10 && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-amber-400/15 border border-amber-400/20 text-amber-400/70">
+              🏆 흐름을 바꿨다
+            </span>
+          )}
           {universeLabel && (
             <span className="text-white/20 text-xs px-1.5 py-0.5 rounded bg-white/5">
               {universeLabel}

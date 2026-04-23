@@ -51,8 +51,17 @@ export interface Comment {
   createdAt: string;
 }
 
+export type Vote = {
+  id: string;
+  storyId: string;
+  universeId: string;
+  voter: string;
+  createdAt: string;
+};
+
 export type AppState = {
   dataVersion: number
   comments: Comment[]
   stories: Story[]
+  votes?: Vote[]
 }

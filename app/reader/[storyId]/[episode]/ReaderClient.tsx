@@ -28,7 +28,8 @@ export default function ReaderClient() {
   const [showUniversePanel, setShowUniversePanel] = useState(false);
   const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
   const [showVotePanel, setShowVotePanel] = useState(false);
-  const [likeFloat, setLikeFloat] = useState<{ x: number; y: number } | null>(null);
+  const [voteTargetId, setVoteTargetId] = useState<string | null>(null);
+  const [likeFloats, setLikeFloats] = useState<{ id: number; x: number; y: number }[]>([]);
   const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
@@ -122,6 +123,12 @@ export default function ReaderClient() {
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [appState, storyId, universeIndex]);
+
+  function addLikeFloat(x: number, y: number) {
+    const id = Date.now();
+    setLikeFloats((prev) => [...prev, { id, x, y }]);
+    setTimeout(() => setLikeFloats((prev) => prev.filter((f) => f.id !== id)), 1100);
+  }
 
   const handleLike = () => {
     if (!appState) return;
@@ -306,6 +313,39 @@ export default function ReaderClient() {
     setUniverseIndex(0);
   };
 
+  const handleUniverseLike = (universeId: string) => {
+    if (!appState) return;
+    const targetStory = appState.stories.find((s) => s.id === storyId);
+    if (!targetStory) return;
+    const targetUniverse = targetStory.universes.find((u) => u.id === universeId);
+    if (!targetUniverse || targetUniverse.episodes.length === 0) return;
+    const lastIdx = targetUniverse.episodes.length - 1;
+    const updated: AppState = {
+      ...appState,
+      stories: appState.stories.map((s) => {
+        if (s.id !== storyId) return s;
+        return {
+          ...s,
+          universes: s.universes.map((u) => {
+            if (u.id !== universeId) return u;
+            return {
+              ...u,
+              episodes: u.episodes.map((ep, ei) =>
+                ei === lastIdx ? { ...ep, likes: ep.likes + 1 } : ep
+              ),
+            };
+          }),
+        };
+      }),
+    };
+    setAppState(updated);
+    saveState(updated);
+    import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+      const updatedStory = updated.stories.find((s: any) => s.id === storyId);
+      if (updatedStory) saveStoryToSupabase(updatedStory);
+    });
+  };
+
   if (!mounted || !appState) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-black">
@@ -331,6 +371,22 @@ export default function ReaderClient() {
   const canRemix = episode.remixAllowed;
   const isMyStory = myNickname && myNickname === story.author;
 
+  // 헤더 배지용 raw likes 계산
+  const headerBadge = (() => {
+    if (totalUniverses <= 1) return null;
+    const mainU = story.universes.find((u) => u.isMain);
+    const mainLikes = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
+    if (mainLikes === 0) return null;
+    const topRatio = story.universes.reduce((max, u) => {
+      if (u.isMain) return max;
+      const uLikes = u.episodes.reduce((s, e) => s + e.likes, 0);
+      return Math.max(max, uLikes / mainLikes);
+    }, 0);
+    if (topRatio >= 2.0) return "transfer" as const;
+    if (topRatio >= 1.5) return "challenge" as const;
+    return null;
+  })();
+
   return (
     <>
       <div className="w-full bg-black flex flex-col" style={{ height: "100dvh" }}>
@@ -347,23 +403,12 @@ export default function ReaderClient() {
             <div className="text-center">
               <p className="text-white/80 text-sm font-medium">{story.title}</p>
               <p className="text-white/40 text-xs">{universe.label}</p>
-              {totalUniverses > 1 && (() => {
-                const mainU = story.universes.find((u) => u.isMain);
-                const mainLikes = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
-                if (mainLikes === 0) return null;
-                const topRatio = story.universes.reduce((max, u) => {
-                  if (u.isMain) return max;
-                  const uLikes = u.episodes.reduce((s, e) => s + e.likes, 0);
-                  return Math.max(max, mainLikes > 0 ? uLikes / mainLikes : 0);
-                }, 0);
-                if (topRatio >= 2.0) return (
-                  <span className="text-xs text-red-400/80 animate-pulse">⚔️ 정사 전환 가능</span>
-                );
-                if (topRatio >= 1.5) return (
-                  <span className="text-xs text-amber-400/70">🔥 정사 도전 중</span>
-                );
-                return null;
-              })()}
+              {headerBadge === "transfer" && (
+                <span className="text-xs text-red-400/80 animate-pulse">⚔️ 정사 전환 가능</span>
+              )}
+              {headerBadge === "challenge" && (
+                <span className="text-xs text-amber-400/70">🔥 정사 도전 중</span>
+              )}
             </div>
             <div className="text-white/40 text-xs text-right">
               <p>{episodeIndex + 1} / {totalEpisodes}화</p>
@@ -378,10 +423,9 @@ export default function ReaderClient() {
             </div>
           </div>
 
-          {/* 2행: 작가 전용 버튼 — 작가일 때만 표시 */}
+          {/* 2행: 작가 전용 버튼 */}
           {isMyStory && (
             <div className="flex items-center justify-end gap-1.5 px-6 pb-1">
-              {/* 원고 수정 */}
               <button
                 onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
                 className="text-white/30 text-xs hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
@@ -390,7 +434,6 @@ export default function ReaderClient() {
                 ✏️
               </button>
 
-              {/* 원작자 반격 알림 */}
               {(() => {
                 try {
                   const raw = localStorage.getItem(`counterattack_${storyId}`);
@@ -411,7 +454,6 @@ export default function ReaderClient() {
                 }
               })()}
 
-              {/* 새 화 추가 — 마지막 화에서만 표시 */}
               {episodeIndex === totalEpisodes - 1 && (
                 <button
                   onClick={() => router.push(`/write/${storyId}/new`)}
@@ -422,7 +464,6 @@ export default function ReaderClient() {
                 </button>
               )}
 
-              {/* 홈 카드 대표 이미지 변경 — 1화에서만 */}
               {episodeIndex === 0 && (
                 <label
                   className="text-white/30 text-xs hover:text-white transition-colors cursor-pointer px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
@@ -448,9 +489,7 @@ export default function ReaderClient() {
                           const updated: AppState = {
                             ...appState,
                             stories: appState.stories.map((s) =>
-                              s.id === storyId
-                                ? { ...s, coverImageUrl: data.url }
-                                : s
+                              s.id === storyId ? { ...s, coverImageUrl: data.url } : s
                             ),
                           };
                           setAppState(updated);
@@ -469,7 +508,6 @@ export default function ReaderClient() {
                 </label>
               )}
 
-              {/* 이 화 삭제 */}
               <button
                 onClick={handleDeleteEpisode}
                 className="text-red-400/30 text-xs hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-red-400/10 hover:border-red-400/30"
@@ -478,7 +516,6 @@ export default function ReaderClient() {
                 🗑
               </button>
 
-              {/* 작품 전체 삭제 — 리믹스 없을 때만 */}
               {totalUniverses === 1 && (
                 <button
                   onClick={handleDeleteStory}
@@ -489,7 +526,6 @@ export default function ReaderClient() {
                 </button>
               )}
 
-              {/* 스냅샷 */}
               <button
                 onClick={() => setShowSnapshot(true)}
                 className="text-white/30 text-xs hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
@@ -499,7 +535,6 @@ export default function ReaderClient() {
             </div>
           )}
 
-          {/* 작가 아닐 때 스냅샷 버튼만 */}
           {!isMyStory && (
             <div className="flex items-center justify-end px-6 pb-2">
               <button
@@ -568,7 +603,7 @@ export default function ReaderClient() {
 
               <div className="mt-12 mb-4 flex items-center gap-4">
                 <button
-                  onClick={(e) => { handleLike(); setLikeFloat({ x: e.clientX, y: e.clientY }); }}
+                  onClick={(e) => { handleLike(); addLikeFloat(e.clientX, e.clientY); }}
                   className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 text-white/60 text-sm hover:border-white/50 hover:text-white transition-all active:scale-95"
                 >
                   <span>👍</span>
@@ -662,20 +697,16 @@ export default function ReaderClient() {
         </div>
       </div>
 
+      {likeFloats.map((f) => (
+        <LikeFloating key={f.id} x={f.x} y={f.y} id={f.id} />
+      ))}
+
       {showSnapshot && (
         <SnapshotCard
           story={story}
           universe={universe}
           episode={episode}
           onClose={() => setShowSnapshot(false)}
-        />
-      )}
-
-      {likeFloat && (
-        <LikeFloating
-          x={likeFloat.x}
-          y={likeFloat.y}
-          onDone={() => setLikeFloat(null)}
         />
       )}
 
@@ -718,9 +749,30 @@ export default function ReaderClient() {
           onClose={() => setShowUniversePanel(false)}
           onUniverseDeleted={handleUniverseDeleted}
           onCanonTransferred={(from, to) => setCanonAlert({ from, to })}
-          onShowVote={() => { setShowUniversePanel(false); setShowVotePanel(true); }}
+          onShowVote={(id) => {
+                console.log("[ReaderClient] onShowVote 호출됨 — universeId:", id);
+                setShowUniversePanel(false);
+                setVoteTargetId(id);
+                setShowVotePanel(true);
+                console.log("[ReaderClient] showVotePanel → true, voteTargetId →", id);
+              }}
+          onLike={handleUniverseLike}
           votes={appState.votes ?? []}
           voterNickname={myNickname ?? ""}
+        />
+      )}
+
+      {showVotePanel && voteTargetId && console.log("[ReaderClient] VotePanel 렌더링 — voteTargetId:", voteTargetId) === undefined && (
+        <VotePanel
+          story={story}
+          comments={appState.comments}
+          votes={appState.votes ?? []}
+          voterNickname={myNickname ?? ""}
+          onVote={(universeId) => {
+            handleVote(universeId);
+            setShowVotePanel(false);
+          }}
+          onClose={() => setShowVotePanel(false)}
         />
       )}
     </>
