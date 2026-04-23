@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode, Comment } from "@/lib/types";
-import { seedIfEmpty } from "@/lib/seed";
 import { saveState, loadState, deleteEpisode, deleteStory, checkCanonWar } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
@@ -26,10 +25,28 @@ export default function ReaderClient() {
   const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
-    const state = seedIfEmpty();
-    setAppState(state);
-    setEpisodeIndex(parseInt(episodeParam) || 0);
-    setMounted(true);
+    async function init() {
+      const { loadStateFromSupabase, seedSupabaseIfEmpty } = await import("@/lib/supabaseStore");
+      const { SEED_DATA } = await import("@/lib/seed");
+
+      const supabaseState = await loadStateFromSupabase();
+      if (supabaseState && supabaseState.stories.length > 0) {
+        setAppState(supabaseState);
+      } else {
+        await seedSupabaseIfEmpty(SEED_DATA.stories);
+        const retryState = await loadStateFromSupabase();
+        if (retryState && retryState.stories.length > 0) {
+          setAppState(retryState);
+        } else {
+          const { seedIfEmpty } = await import("@/lib/seed");
+          const localState = seedIfEmpty();
+          setAppState(localState);
+        }
+      }
+      setEpisodeIndex(parseInt(episodeParam) || 0);
+      setMounted(true);
+    }
+    init();
   }, [episodeParam]);
 
   useEffect(() => {
@@ -99,11 +116,6 @@ export default function ReaderClient() {
     };
   }, [appState, storyId, universeIndex]);
 
-  function reloadState() {
-    const fresh = loadState();
-    if (fresh) setAppState(fresh);
-  }
-
   const handleLike = () => {
     if (!appState) return;
     const updated: AppState = {
@@ -128,6 +140,10 @@ export default function ReaderClient() {
     setAppState(updated);
     saveState(updated);
     checkCanonWar(storyId);
+    import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+      const updatedStory = updated.stories.find((s: any) => s.id === storyId);
+      if (updatedStory) saveStoryToSupabase(updatedStory);
+    });
   };
 
   const handleDislike = () => {
@@ -153,6 +169,10 @@ export default function ReaderClient() {
     };
     setAppState(updated);
     saveState(updated);
+    import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+      const updatedStory = updated.stories.find((s: any) => s.id === storyId);
+      if (updatedStory) saveStoryToSupabase(updatedStory);
+    });
   };
 
   const handleAddComment = (content: string, author: string) => {
@@ -177,6 +197,9 @@ export default function ReaderClient() {
     };
     setAppState(updated);
     saveState(updated);
+    import("@/lib/supabaseStore").then(({ saveCommentToSupabase }) => {
+      saveCommentToSupabase(newComment);
+    });
   };
 
   const handleLikeComment = (commentId: string) => {
@@ -189,6 +212,10 @@ export default function ReaderClient() {
     };
     setAppState(updated);
     saveState(updated);
+    import("@/lib/supabaseStore").then(({ saveCommentToSupabase }) => {
+      const updatedComment = updated.comments.find((c: any) => c.id === commentId);
+      if (updatedComment) saveCommentToSupabase(updatedComment);
+    });
   };
 
   const handleDislikeComment = (commentId: string) => {
@@ -201,6 +228,10 @@ export default function ReaderClient() {
     };
     setAppState(updated);
     saveState(updated);
+    import("@/lib/supabaseStore").then(({ saveCommentToSupabase }) => {
+      const updatedComment = updated.comments.find((c: any) => c.id === commentId);
+      if (updatedComment) saveCommentToSupabase(updatedComment);
+    });
   };
 
   const handleDeleteEpisode = () => {
@@ -216,7 +247,14 @@ export default function ReaderClient() {
       alert(result.reason ?? "삭제할 수 없습니다.");
       return;
     }
-    reloadState();
+    const fresh = loadState();
+    if (fresh) {
+      setAppState(fresh);
+      import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+        const updatedStory = fresh.stories.find((s: any) => s.id === storyId);
+        if (updatedStory) saveStoryToSupabase(updatedStory);
+      });
+    }
     setEpisodeIndex(Math.max(0, episodeIndex - 1));
   };
 
@@ -232,11 +270,15 @@ export default function ReaderClient() {
       alert(result.reason ?? "삭제할 수 없습니다.");
       return;
     }
+    import("@/lib/supabaseStore").then(({ deleteStoryFromSupabase }) => {
+      deleteStoryFromSupabase(storyId);
+    });
     router.push("/");
   };
 
   const handleUniverseDeleted = () => {
-    reloadState();
+    const fresh = loadState();
+    if (fresh) setAppState(fresh);
     setUniverseIndex(0);
   };
 
@@ -351,6 +393,10 @@ export default function ReaderClient() {
                           };
                           setAppState(updated);
                           saveState(updated);
+                          import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+                            const updatedStory = updated.stories.find((s: any) => s.id === storyId);
+                            if (updatedStory) saveStoryToSupabase(updatedStory);
+                          });
                         }
                       } catch (err) {
                         console.error("홈 카드 이미지 업로드 실패", err);
@@ -586,6 +632,10 @@ export default function ReaderClient() {
             };
             setAppState(updated);
             saveState(updated);
+            import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+              const updatedStory = updated.stories.find((s: any) => s.id === storyId);
+              if (updatedStory) saveStoryToSupabase(updatedStory);
+            });
           }}
           onClose={() => setShowUniversePanel(false)}
           onUniverseDeleted={handleUniverseDeleted}

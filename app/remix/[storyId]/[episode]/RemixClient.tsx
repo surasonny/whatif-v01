@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode } from "@/lib/types";
-import { seedIfEmpty } from "@/lib/seed";
 import { saveState } from "@/lib/store";
+import { seedIfEmpty } from "@/lib/seed";
 import ImageUploader from "@/app/components/ImageUploader";
 
 export default function RemixClient() {
@@ -18,16 +18,16 @@ export default function RemixClient() {
   const [appState, setAppState] = useState<AppState | null>(null);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<"input" | "generating" | "edit" | "done">("input");
-  const [direction, setDirection] = useState("");
-  const [remixText, setRemixText] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const state = seedIfEmpty();
     setAppState(state);
     setMounted(true);
   }, []);
+  const [direction, setDirection] = useState("");
+  const [remixText, setRemixText] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [error, setError] = useState("");
 
   if (!mounted || !appState) {
     return (
@@ -141,6 +141,10 @@ export default function RemixClient() {
 
     saveState(updated);
     setAppState(updated);
+    import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+      const updatedStory = updated.stories.find((s: any) => s.id === storyId);
+      if (updatedStory) saveStoryToSupabase(updatedStory);
+    });
     setStep("done");
   };
 

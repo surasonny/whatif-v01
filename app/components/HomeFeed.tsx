@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppState, Story } from "@/lib/types";
-import { seedIfEmpty } from "@/lib/seed";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 import NicknameSetup from "@/app/components/AuthorModeToggle";
 
@@ -30,20 +29,38 @@ const GENRE_COLORS: Record<string, string> = {
 export default function HomeFeed() {
   const router = useRouter();
   const [appState, setAppState] = useState<AppState | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [showNicknameSetup, setShowNicknameSetup] = useState(false);
   const { nickname } = useMyNickname();
 
+  useEffect(() => {
+    async function init() {
+      const { loadStateFromSupabase, seedSupabaseIfEmpty } = await import("@/lib/supabaseStore");
+      const { SEED_DATA } = await import("@/lib/seed");
+
+      const supabaseState = await loadStateFromSupabase();
+      if (supabaseState && supabaseState.stories.length > 0) {
+        setAppState(supabaseState);
+      } else {
+        await seedSupabaseIfEmpty(SEED_DATA.stories);
+        const retryState = await loadStateFromSupabase();
+        if (retryState && retryState.stories.length > 0) {
+          setAppState(retryState);
+        } else {
+          const { seedIfEmpty } = await import("@/lib/seed");
+          const localState = seedIfEmpty();
+          setAppState(localState);
+        }
+      }
+      setMounted(true);
+    }
+    init();
+  }, []);
+
   const startYRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const state = seedIfEmpty();
-    setAppState(state);
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     setImgLoaded(false);

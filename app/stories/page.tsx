@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppState, Story } from "@/lib/types";
-import { seedIfEmpty } from "@/lib/seed";
 import { deleteStory, loadState } from "@/lib/store";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 
@@ -16,9 +15,27 @@ export default function StoriesPage() {
   const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
-    const state = seedIfEmpty();
-    setAppState(state);
-    setMounted(true);
+    async function init() {
+      const { loadStateFromSupabase, seedSupabaseIfEmpty } = await import("@/lib/supabaseStore");
+      const { SEED_DATA } = await import("@/lib/seed");
+
+      const supabaseState = await loadStateFromSupabase();
+      if (supabaseState && supabaseState.stories.length > 0) {
+        setAppState(supabaseState);
+      } else {
+        await seedSupabaseIfEmpty(SEED_DATA.stories);
+        const retryState = await loadStateFromSupabase();
+        if (retryState && retryState.stories.length > 0) {
+          setAppState(retryState);
+        } else {
+          const { seedIfEmpty } = await import("@/lib/seed");
+          const localState = seedIfEmpty();
+          setAppState(localState);
+        }
+      }
+      setMounted(true);
+    }
+    init();
   }, []);
 
   function reloadState() {
@@ -41,6 +58,9 @@ export default function StoriesPage() {
       return;
     }
     setConfirmDeleteId(null);
+    import("@/lib/supabaseStore").then(({ deleteStoryFromSupabase }) => {
+      deleteStoryFromSupabase(storyId);
+    });
     reloadState();
   }
 

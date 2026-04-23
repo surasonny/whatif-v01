@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppState, Episode } from "@/lib/types";
-import { seedIfEmpty } from "@/lib/seed";
 import { addEpisode } from "@/lib/store";
+import { seedIfEmpty } from "@/lib/seed";
 
 const STYLE_PRESETS = [
   { label: "빠른 전개", desc: "긴장감 있고 속도감 있는 문체" },
@@ -50,6 +50,8 @@ export default function NewEpisodeClient() {
     setAppState(state);
     setMounted(true);
   }, [storyId]);
+
+
 
   function addCharacter() {
     if (characters.length >= 5) return;

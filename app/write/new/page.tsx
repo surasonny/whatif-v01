@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppState, Story, Universe, Episode } from "@/lib/types";
-import { seedIfEmpty } from "@/lib/seed";
 import { saveState } from "@/lib/store";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 import ImageUploader from "@/app/components/ImageUploader";
@@ -55,10 +54,28 @@ export default function NewStoryPage() {
   const [editStyle, setEditStyle] = useState("");
 
   useEffect(() => {
-    const state = seedIfEmpty();
-    setAppState(state);
-    if (nickname) setAuthorName(nickname);
-    setMounted(true);
+    async function init() {
+      const { loadStateFromSupabase, seedSupabaseIfEmpty } = await import("@/lib/supabaseStore");
+      const { SEED_DATA } = await import("@/lib/seed");
+
+      const supabaseState = await loadStateFromSupabase();
+      if (supabaseState && supabaseState.stories.length > 0) {
+        setAppState(supabaseState);
+      } else {
+        await seedSupabaseIfEmpty(SEED_DATA.stories);
+        const retryState = await loadStateFromSupabase();
+        if (retryState && retryState.stories.length > 0) {
+          setAppState(retryState);
+        } else {
+          const { seedIfEmpty } = await import("@/lib/seed");
+          const localState = seedIfEmpty();
+          setAppState(localState);
+        }
+      }
+      if (nickname) setAuthorName(nickname);
+      setMounted(true);
+    }
+    init();
   }, [nickname]);
 
   function toggleGenre(g: string) {
@@ -209,6 +226,9 @@ export default function NewStoryPage() {
     };
     setAppState(updated);
     saveState(updated);
+    import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+      saveStoryToSupabase(newStory);
+    });
     router.push(`/reader/${newStory.id}/0`);
   };
 
