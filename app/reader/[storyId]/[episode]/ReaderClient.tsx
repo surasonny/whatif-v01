@@ -8,6 +8,8 @@ import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
 import UniversePanel from "@/app/components/UniversePanel";
 import CanonWarAlert from "@/app/components/CanonWarAlert";
+import VotePanel from "@/app/components/VotePanel";
+import { Vote } from "@/lib/types";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 
 export default function ReaderClient() {
@@ -24,6 +26,7 @@ export default function ReaderClient() {
   const [showSnapshot, setShowSnapshot] = useState(false);
   const [showUniversePanel, setShowUniversePanel] = useState(false);
   const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
+  const [showVotePanel, setShowVotePanel] = useState(false);
   const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
@@ -278,6 +281,23 @@ export default function ReaderClient() {
     router.push("/");
   };
 
+  const handleVote = (universeId: string) => {
+    if (!appState || !myNickname) return;
+    const newVote: Vote = {
+      id: `vote-${Date.now()}`,
+      storyId,
+      universeId,
+      voter: myNickname,
+      createdAt: new Date().toISOString(),
+    };
+    const updated: AppState = {
+      ...appState,
+      votes: [...(appState.votes ?? []), newVote],
+    };
+    setAppState(updated);
+    saveState(updated);
+  };
+
   const handleUniverseDeleted = () => {
     const fresh = loadState();
     if (fresh) setAppState(fresh);
@@ -322,6 +342,24 @@ export default function ReaderClient() {
             >
               ← 홈
             </button>
+            {totalUniverses > 1 && (() => {
+              const mainU = story.universes.find((u) => u.isMain);
+              const mainScore = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
+              const has200 = story.universes.some((u) => {
+                if (u.isMain) return false;
+                const uScore = u.episodes.reduce((s, e) => s + e.likes, 0);
+                return mainScore > 0 && uScore / mainScore >= 2.0;
+              });
+              if (!has200) return null;
+              return (
+                <button
+                  onClick={() => setShowVotePanel(true)}
+                  className="text-amber-400/60 text-xs hover:text-amber-400 transition-colors px-2 py-1 rounded border border-amber-400/20 hover:border-amber-400/40 animate-pulse"
+                >
+                  ⚔ 투표
+                </button>
+              );
+            })()}
             <div className="text-center">
               <p className="text-white/80 text-sm font-medium">{story.title}</p>
               <p className="text-white/40 text-xs">{universe.label}</p>
