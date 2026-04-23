@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Story, Universe } from "@/lib/types";
 import { deleteUniverse, calcUniverseScore } from "@/lib/store";
+import CanonWarAlert from "./CanonWarAlert";
 
 interface Props {
   story: Story;
@@ -12,6 +13,7 @@ interface Props {
   onSetMain: (universeId: string) => void;
   onClose: () => void;
   onUniverseDeleted?: () => void;
+  onCanonTransferred?: (fromLabel: string, toLabel: string) => void;
 }
 
 export default function UniversePanel({
@@ -22,10 +24,12 @@ export default function UniversePanel({
   onSetMain,
   onClose,
   onUniverseDeleted,
+  onCanonTransferred,
 }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
 
   function handleDeleteClick(e: React.MouseEvent, universeId: string) {
     e.stopPropagation();
@@ -54,9 +58,10 @@ export default function UniversePanel({
 
   // 메인 유니버스 점수
   const mainUniverse = story.universes.find((u) => u.isMain);
-  const mainScore = mainUniverse ? calcUniverseScore(mainUniverse, comments) : 0;
+  const mainScore = Math.round(mainUniverse ? calcUniverseScore(mainUniverse, comments) : 0);
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-end justify-center"
       onClick={onClose}
@@ -89,7 +94,7 @@ export default function UniversePanel({
             <p className="text-white/20 text-xs mb-2 tracking-widest">분기 구조</p>
             <div className="flex flex-col gap-1.5">
               {story.universes.map((u) => {
-                const score = calcUniverseScore(u, comments);
+                const score = Math.round(calcUniverseScore(u, comments));
                 return (
                   <div key={u.id} className="flex items-center gap-2">
                     <div className={`flex items-center gap-1.5 ${
@@ -159,11 +164,51 @@ export default function UniversePanel({
         {/* 유니버스 목록 */}
         {!showHistory && (
           <div className="flex flex-col gap-3">
+            {(() => {
+              const challenger = story.universes.find((u) => {
+                if (u.isMain) return false;
+                const s = Math.round(calcUniverseScore(u, comments));
+                const mScore = Math.round(calcUniverseScore(
+                  story.universes.find((m) => m.isMain) ?? story.universes[0],
+                  comments
+                ));
+                return s > 0 || mScore > 0;
+              });
+              if (!challenger) return null;
+              const challengerScore = Math.round(calcUniverseScore(challenger, comments));
+              const isWinning = challengerScore > mainScore;
+
+              return (
+                <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-white/3 to-amber-400/5 border border-amber-400/20">
+                  <p className="text-amber-400/60 text-xs mb-3 tracking-widest">⚔ 정사대전</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 text-center">
+                      <p className="text-white/50 text-xs mb-1">정사</p>
+                      <p className="text-white font-bold text-sm">{mainUniverse?.label}</p>
+                      <p className={`text-lg font-black mt-1 ${isWinning ? "text-white/40" : "text-white"}`}>
+                        {mainScore}점
+                      </p>
+                    </div>
+                    <div className="text-amber-400 text-xl font-black">VS</div>
+                    <div className="flex-1 text-center">
+                      <p className="text-amber-400/60 text-xs mb-1">도전자</p>
+                      <p className="text-amber-400 font-bold text-sm">{challenger.label}</p>
+                      <p className={`text-lg font-black mt-1 ${isWinning ? "text-amber-400" : "text-white/40"}`}>
+                        {challengerScore}점
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-center text-xs mt-2 text-white/30">
+                    {isWinning ? "🔥 도전자 우세" : "✓ 정사 우세"}
+                  </p>
+                </div>
+              );
+            })()}
             {story.universes.map((universe: Universe, i: number) => {
               const isCurrentMain = universe.isMain;
               const isSelected = i === currentUniverseIndex;
               const isConfirming = confirmDeleteId === universe.id;
-              const score = calcUniverseScore(universe, comments);
+              const score = Math.round(calcUniverseScore(universe, comments));
 
               // 도전 상태 계산
               const ratio = mainScore > 0 ? score / mainScore : 0;
@@ -234,9 +279,20 @@ export default function UniversePanel({
                         </span>
                       )}
                     </div>
-                    <span className="text-white/40 text-xs font-medium">
-                      {score}점
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className={`text-sm font-bold ${
+                        isChallenger ? "text-amber-400" : isCurrentMain ? "text-white/70" : "text-white/40"
+                      }`}>
+                        {score}점
+                      </span>
+                      {!isCurrentMain && mainScore > 0 && (
+                        <span className={`text-xs ${
+                          ratio >= 1.5 ? "text-red-400/70" : ratio >= 1.0 ? "text-amber-400/60" : "text-white/20"
+                        }`}>
+                          {Math.round(ratio * 100)}%
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* D-7 카운트다운 */}
@@ -276,12 +332,12 @@ export default function UniversePanel({
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
-                            ratio >= 2.0
-                              ? "bg-green-400"
-                              : ratio >= 1.5
+                            ratio >= 1.5
+                              ? "bg-red-400"
+                              : ratio >= 1.0
                               ? "bg-amber-400"
-                              : "bg-white/30"
-                          }`}
+                              : "bg-green-400/60"
+                          } ${ratio >= 1.5 ? "animate-pulse" : ""}`}
                           style={{ width: `${Math.min(progressPct / 2, 100)}%` }}
                         />
                       </div>
@@ -312,6 +368,10 @@ export default function UniversePanel({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            const mainU = story.universes.find((u) => u.isMain);
+                            if (mainU) {
+                              setCanonAlert({ from: mainU.label, to: universe.label });
+                            }
                             onSetMain(universe.id);
                             onClose();
                           }}
@@ -352,5 +412,14 @@ export default function UniversePanel({
         )}
       </div>
     </div>
+
+    {canonAlert && (
+      <CanonWarAlert
+        fromLabel={canonAlert.from}
+        toLabel={canonAlert.to}
+        onDone={() => setCanonAlert(null)}
+      />
+    )}
+    </>
   );
 }

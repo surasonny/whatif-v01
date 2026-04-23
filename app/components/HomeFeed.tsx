@@ -114,6 +114,18 @@ export default function HomeFeed() {
     ?? mainUniverse.episodes[0]?.coverImageUrl
     ?? null;
 
+  const mainLikes = mainUniverse.episodes.reduce((s, e) => s + e.likes, 0);
+  const isCanonWar = story.universes.some((u) => {
+    if (u.isMain) return false;
+    const uLikes = u.episodes.reduce((s, e) => s + e.likes, 0);
+    return uLikes > 0 && (mainLikes === 0 || uLikes / mainLikes >= 1.5);
+  });
+
+  const recentlyTransferred = !!(story.mainHistory &&
+    story.mainHistory.length > 0 &&
+    (new Date().getTime() - new Date((story.mainHistory as any[])[story.mainHistory.length - 1].date).getTime())
+    < 1000 * 60 * 60 * 24);
+
   return (
     <>
       <div
@@ -182,6 +194,16 @@ export default function HomeFeed() {
             >
               {story.genre}
             </span>
+            {isCanonWar && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-400/20 text-red-400 border border-red-400/30 animate-pulse">
+                ⚔ 정사대전 중
+              </span>
+            )}
+            {recentlyTransferred && !isCanonWar && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/30">
+                🔥 정사 교체됨
+              </span>
+            )}
             <span className="text-white/30 text-xs">{totalEpisodes}화</span>
             {totalUniverses > 1 && (
               <span className="text-white/30 text-xs">· 유니버스 {totalUniverses}개</span>
