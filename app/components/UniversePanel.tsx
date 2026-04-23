@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Story, Universe } from "@/lib/types";
 import { deleteUniverse, calcUniverseScore } from "@/lib/store";
-import CanonWarAlert from "./CanonWarAlert";
 
 interface Props {
   story: Story;
@@ -29,8 +28,6 @@ export default function UniversePanel({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
-
   function handleDeleteClick(e: React.MouseEvent, universeId: string) {
     e.stopPropagation();
     setErrorMsg(null);
@@ -370,7 +367,7 @@ export default function UniversePanel({
                             e.stopPropagation();
                             const mainU = story.universes.find((u) => u.isMain);
                             if (mainU) {
-                              setCanonAlert({ from: mainU.label, to: universe.label });
+                              onCanonTransferred?.(mainU.label, universe.label);
                             }
                             onSetMain(universe.id);
                             onClose();
@@ -413,13 +410,6 @@ export default function UniversePanel({
       </div>
     </div>
 
-    {canonAlert && (
-      <CanonWarAlert
-        fromLabel={canonAlert.from}
-        toLabel={canonAlert.to}
-        onDone={() => setCanonAlert(null)}
-      />
-    )}
-    </>
+</>
   );
 }

@@ -7,6 +7,7 @@ import { saveState, loadState, deleteEpisode, deleteStory, checkCanonWar } from 
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
 import UniversePanel from "@/app/components/UniversePanel";
+import CanonWarAlert from "@/app/components/CanonWarAlert";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 
 export default function ReaderClient() {
@@ -22,6 +23,7 @@ export default function ReaderClient() {
   const [universeIndex, setUniverseIndex] = useState(0);
   const [showSnapshot, setShowSnapshot] = useState(false);
   const [showUniversePanel, setShowUniversePanel] = useState(false);
+  const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
   const { nickname: myNickname } = useMyNickname();
 
   useEffect(() => {
@@ -609,6 +611,14 @@ export default function ReaderClient() {
         />
       )}
 
+      {canonAlert && (
+        <CanonWarAlert
+          fromLabel={canonAlert.from}
+          toLabel={canonAlert.to}
+          onDone={() => setCanonAlert(null)}
+        />
+      )}
+
       {showUniversePanel && (
         <UniversePanel
           story={story}
@@ -639,6 +649,7 @@ export default function ReaderClient() {
           }}
           onClose={() => setShowUniversePanel(false)}
           onUniverseDeleted={handleUniverseDeleted}
+          onCanonTransferred={(from, to) => setCanonAlert({ from, to })}
         />
       )}
     </>
