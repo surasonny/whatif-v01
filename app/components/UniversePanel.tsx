@@ -13,6 +13,9 @@ interface Props {
   onClose: () => void;
   onUniverseDeleted?: () => void;
   onCanonTransferred?: (fromLabel: string, toLabel: string) => void;
+  onShowVote?: () => void;
+  votes?: import("@/lib/types").Vote[];
+  voterNickname?: string;
 }
 
 export default function UniversePanel({
@@ -24,6 +27,9 @@ export default function UniversePanel({
   onClose,
   onUniverseDeleted,
   onCanonTransferred,
+  onShowVote,
+  votes,
+  voterNickname,
 }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -211,6 +217,29 @@ export default function UniversePanel({
                   <p className="text-center text-xs mt-2 text-white/30">
                     {isWinning ? "🔥 도전자 우세" : "✓ 정사 우세"}
                   </p>
+                  {(() => {
+                    if (!onShowVote) return null;
+                    const mainU = story.universes.find((u) => u.isMain);
+                    const mainScore = mainU ? mainU.episodes.reduce((s: number, e: any) => s + e.likes, 0) : 0;
+                    const has200 = story.universes.some((u) => {
+                      if (u.isMain) return false;
+                      const uScore = u.episodes.reduce((s: number, e: any) => s + e.likes, 0);
+                      return mainScore > 0 && uScore / mainScore >= 2.0;
+                    });
+                    if (!has200) return null;
+                    const myVote = votes?.find((v) => v.storyId === story.id && v.voter === voterNickname);
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShowVote();
+                        }}
+                        className="mt-3 w-full py-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-bold hover:bg-amber-400/20 transition-all animate-pulse"
+                      >
+                        {myVote ? "⚔ 투표 현황 보기" : "⚔ 독자 투표 참여하기"}
+                      </button>
+                    );
+                  })()}
                 </div>
               );
             })()}

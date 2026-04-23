@@ -342,24 +342,6 @@ export default function ReaderClient() {
             >
               ← 홈
             </button>
-            {totalUniverses > 1 && (() => {
-              const mainU = story.universes.find((u) => u.isMain);
-              const mainScore = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
-              const has200 = story.universes.some((u) => {
-                if (u.isMain) return false;
-                const uScore = u.episodes.reduce((s, e) => s + e.likes, 0);
-                return mainScore > 0 && uScore / mainScore >= 2.0;
-              });
-              if (!has200) return null;
-              return (
-                <button
-                  onClick={() => setShowVotePanel(true)}
-                  className="text-amber-400/60 text-xs hover:text-amber-400 transition-colors px-2 py-1 rounded border border-amber-400/20 hover:border-amber-400/40 animate-pulse"
-                >
-                  ⚔ 투표
-                </button>
-              );
-            })()}
             <div className="text-center">
               <p className="text-white/80 text-sm font-medium">{story.title}</p>
               <p className="text-white/40 text-xs">{universe.label}</p>
@@ -709,6 +691,9 @@ export default function ReaderClient() {
           onClose={() => setShowUniversePanel(false)}
           onUniverseDeleted={handleUniverseDeleted}
           onCanonTransferred={(from, to) => setCanonAlert({ from, to })}
+          onShowVote={() => { setShowUniversePanel(false); setShowVotePanel(true); }}
+          votes={appState.votes ?? []}
+          voterNickname={myNickname ?? ""}
         />
       )}
     </>
