@@ -187,6 +187,26 @@ export default function NewEpisodeClient() {
       setError(result.reason ?? "저장 실패");
       return;
     }
+
+    // 원작자 반격 이벤트 기록
+    if (story) {
+      const hasChallenger = story.universes.some((u) => {
+        if (u.isMain) return false;
+        const mainU = story.universes.find((m) => m.isMain);
+        if (!mainU) return false;
+        const mainLikes = mainU.episodes.reduce((s: number, e: any) => s + e.likes, 0);
+        const uLikes = u.episodes.reduce((s: number, e: any) => s + e.likes, 0);
+        return mainLikes > 0 && uLikes / mainLikes >= 1.5;
+      });
+
+      if (hasChallenger) {
+        localStorage.setItem(
+          `counterattack_${storyId}`,
+          JSON.stringify({ date: new Date().toISOString(), episodeIndex: nextIndex })
+        );
+      }
+    }
+
     router.push(`/reader/${storyId}/${nextIndex}`);
   };
 

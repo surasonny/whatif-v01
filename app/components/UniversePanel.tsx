@@ -72,9 +72,16 @@ export default function UniversePanel({
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
 
         <div className="flex items-center justify-between mb-4">
-          <p className="text-white/40 text-xs tracking-widest">
-            유니버스 목록 — {story.universes.length}개
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-white/40 text-xs tracking-widest">
+              유니버스 목록 — {story.universes.length}개
+            </p>
+            {story.mainHistory && story.mainHistory.length > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-400/70">
+                {story.mainHistory.length + 1}대 정사
+              </span>
+            )}
+          </div>
           {story.mainHistory && story.mainHistory.length > 0 && (
             <button
               onClick={() => setShowHistory(!showHistory)}
@@ -139,21 +146,27 @@ export default function UniversePanel({
               이 작품은 {story.mainHistory.length}번 정사가 바뀌었습니다
             </p>
             <div className="flex flex-col gap-2">
-              {[...story.mainHistory].reverse().map((h, i) => (
-                <div
-                  key={i}
-                  className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10"
-                >
-                  <p className="text-white/60 text-xs">
-                    <span className="text-white/30">{h.fromUniverseLabel}</span>
-                    <span className="text-white/20 mx-2">→</span>
-                    <span className="text-amber-400/80">{h.toUniverseLabel}</span>
-                  </p>
-                  <p className="text-white/20 text-xs mt-1">
-                    {new Date(h.date).toLocaleDateString("ko-KR")} · 👍 {h.totalLikes}
-                  </p>
-                </div>
-              ))}
+              {[...story.mainHistory].reverse().map((h, i) => {
+                const generation = story.mainHistory!.length - i + 1;
+                return (
+                  <div
+                    key={i}
+                    className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-white/60 text-xs">
+                        <span className="text-white/30">{h.fromUniverseLabel}</span>
+                        <span className="text-white/20 mx-2">→</span>
+                        <span className="text-amber-400/80">{h.toUniverseLabel}</span>
+                      </p>
+                      <span className="text-amber-400/50 text-xs">{generation}대 정사</span>
+                    </div>
+                    <p className="text-white/20 text-xs">
+                      {new Date(h.date).toLocaleDateString("ko-KR")} · 👍 {h.totalLikes}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

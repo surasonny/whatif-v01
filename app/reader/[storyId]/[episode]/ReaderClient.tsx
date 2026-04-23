@@ -351,6 +351,27 @@ export default function ReaderClient() {
                 ✏️
               </button>
 
+              {/* 원작자 반격 알림 */}
+              {(() => {
+                try {
+                  const raw = localStorage.getItem(`counterattack_${storyId}`);
+                  if (!raw) return null;
+                  const data = JSON.parse(raw);
+                  const diffHours = (new Date().getTime() - new Date(data.date).getTime()) / (1000 * 60 * 60);
+                  if (diffHours > 24) {
+                    localStorage.removeItem(`counterattack_${storyId}`);
+                    return null;
+                  }
+                  return (
+                    <span className="text-red-400/70 text-xs px-2 py-1 rounded-lg bg-red-400/10 border border-red-400/20 animate-pulse">
+                      ⚔ 원작자 반격
+                    </span>
+                  );
+                } catch {
+                  return null;
+                }
+              })()}
+
               {/* 새 화 추가 — 마지막 화에서만 표시 */}
               {episodeIndex === totalEpisodes - 1 && (
                 <button
