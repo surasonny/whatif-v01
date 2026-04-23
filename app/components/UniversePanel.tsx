@@ -246,6 +246,32 @@ export default function UniversePanel({
                 </div>
               );
             })()}
+            {onShowVote && (() => {
+              const mainU = story.universes.find((u) => u.isMain);
+              const mainLikes = mainU
+                ? mainU.episodes.reduce((s: number, e: any) => s + (Number(e.likes) || 0), 0)
+                : 0;
+              const has200 = story.universes.some((u) => {
+                if (u.isMain) return false;
+                const uLikes = u.episodes.reduce((s: number, e: any) => s + (Number(e.likes) || 0), 0);
+                return mainLikes > 0 && uLikes / mainLikes >= 2.0;
+              });
+              if (!has200) return null;
+              const myVote = votes?.find(
+                (v: any) => v.storyId === story.id && v.voter === (voterNickname ?? "")
+              );
+              return (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowVote();
+                  }}
+                  className="w-full py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 text-sm font-bold hover:bg-amber-400/20 transition-all animate-pulse mb-4"
+                >
+                  {myVote ? "⚔ 투표 현황 보기" : "⚔ 독자 투표 참여하기"}
+                </button>
+              );
+            })()}
             {story.universes.map((universe: Universe, i: number) => {
               const isCurrentMain = universe.isMain;
               const isSelected = i === currentUniverseIndex;
