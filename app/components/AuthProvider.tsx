@@ -31,72 +31,80 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-async function resolveNickname(user: User): Promise<string> {
-  // 1순위: profiles 테이블
-  const { data, error } = await supabase
+async function fetchNickname(user: User): Promise<string> {
+  const { data: profile } = await supabase
     .from("profiles")
     .select("nickname")
     .eq("id", user.id)
     .single();
-
-  if (data?.nickname) {
-    console.log("[AuthProvider] profiles에서 닉네임 로드:", data.nickname);
-    return data.nickname;
-  }
-
-  if (error) {
-    console.warn("[AuthProvider] profiles 조회 실패:", error.message);
-  }
-
-  // 2순위: signUp 시 저장한 user_metadata
-  const metaNickname = user.user_metadata?.nickname as string | undefined;
-  if (metaNickname) {
-    console.log("[AuthProvider] user_metadata에서 닉네임 로드:", metaNickname);
-    // profiles에 없으면 여기서 insert 시도
-    const { error: upsertError } = await supabase
-      .from("profiles")
-      .upsert({ id: user.id, nickname: metaNickname });
-    if (upsertError) {
-      console.error("[AuthProvider] profiles 백필 실패:", upsertError.message);
-    }
-    return metaNickname;
-  }
-
-  // 3순위: 이메일 앞부분 (최후 fallback)
-  return user.email?.split("@")[0] ?? "익명";
+  return (
+    profile?.nickname ??
+    (user.user_metadata?.nickname as string | undefined) ??
+    user.email?.split("@")[0] ??
+    "익명"
+  );
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser]         = useState<User | null>(null);
-  const [nickname, setNickname] = useState<string | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [user, setUser]           = useState<User | null>(null);
+  const [nickname, setNickname]   = useState<string | null>(null);
+  const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        const nick = await resolveNickname(u);
-        setNickname(nick);
+    let cancelled = false;
+
+    // 3초 안에 init 안 끝나면 loading 강제 해제
+    const safetyTimer = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[AuthProvider] init timeout — loading 강제 해제");
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    }, 3000);
+
+    async function init() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
+
+        if (session?.user) {
+          setUser(session.user);
+          const nick = await fetchNickname(session.user);
+          if (!cancelled) setNickname(nick);
+        }
+      } catch (e) {
+        console.error("[AuthProvider] init 에러:", e);
+      } finally {
+        clearTimeout(safetyTimer);
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const u = session?.user ?? null;
         setUser(u);
         if (u) {
-          const nick = await resolveNickname(u);
-          setNickname(nick);
+          try {
+            const nick = await fetchNickname(u);
+            setNickname(nick);
+          } catch (e) {
+            console.error("[AuthProvider] onAuthStateChange 닉네임 조회 실패:", e);
+            setNickname(u.email?.split("@")[0] ?? "익명");
+          }
         } else {
           setNickname(null);
         }
       },
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = useCallback(async () => {
