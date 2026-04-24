@@ -113,6 +113,55 @@ export async function saveCommentToSupabase(comment: Comment): Promise<void> {
 }
 
 // ─────────────────────────────────────────
+// 투표 불러오기 (story 전체)
+// ─────────────────────────────────────────
+export async function fetchVotesForStory(
+  storyId: string
+): Promise<Array<{ universeId: string; nickname: string }>> {
+  try {
+    const { data, error } = await supabase
+      .from("votes")
+      .select("universe_id, nickname")
+      .eq("story_id", storyId);
+    if (error) throw error;
+    return (data || []).map((r: any) => ({
+      universeId: r.universe_id,
+      nickname: r.nickname,
+    }));
+  } catch (e) {
+    console.error("Supabase fetchVotes 실패:", e);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────
+// 투표 저장
+// ─────────────────────────────────────────
+export async function insertVoteToSupabase(
+  storyId: string,
+  episodeIndex: number,
+  universeId: string,
+  nickname: string
+): Promise<{ ok: boolean; duplicate: boolean }> {
+  try {
+    const { error } = await supabase.from("votes").insert({
+      story_id: storyId,
+      episode: episodeIndex,
+      universe_id: universeId,
+      nickname,
+    });
+    if (error) {
+      if (error.code === "23505") return { ok: false, duplicate: true };
+      throw error;
+    }
+    return { ok: true, duplicate: false };
+  } catch (e) {
+    console.error("Supabase insertVote 실패:", e);
+    return { ok: false, duplicate: false };
+  }
+}
+
+// ─────────────────────────────────────────
 // seed 작품들을 Supabase에 업로드
 // (최초 1회 또는 버전 업 시)
 // ─────────────────────────────────────────

@@ -174,7 +174,7 @@ export default function UniversePanel({
                         <span className="text-amber-400/50 text-xs">{generation}대 정사</span>
                       </div>
                       <p className="text-white/20 text-xs">
-                        {new Date(h.date).toLocaleDateString("ko-KR")} · 👍 {h.totalLikes}
+                        {new Date(h.date).toLocaleDateString("ko-KR")} · ❤️ {h.totalLikes}
                       </p>
                     </div>
                   );
@@ -258,13 +258,6 @@ export default function UniversePanel({
                   universe.challengeStartedAt &&
                   (new Date().getTime() - new Date(universe.challengeStartedAt).getTime()) /
                     (1000 * 60 * 60 * 24) > 7;
-
-                // 디버그: 비(非)정사 카드마다 두 비율 모두 출력
-                if (!isCurrentMain) {
-                  console.log(
-                    `[UniversePanel] "${universe.label}" — rawLikes: ${rawLikes}, mainRawLikes: ${mainRawLikes}, rawRatio: ${rawRatio.toFixed(2)} (${Math.round(rawRatio * 100)}%) | scoreRatio: ${ratio.toFixed(2)} (${Math.round(ratio * 100)}%) | isChallenger150: ${isChallenger150}`
-                  );
-                }
 
                 return (
                   <div
@@ -398,20 +391,9 @@ export default function UniversePanel({
                         )}
                       </p>
 
-                      {!isCurrentMain && !isConfirming && (
+                      {/* 응원 버튼 행 — 모든 카드에 표시 */}
+                      {!isConfirming && (
                         <div className="flex items-center gap-2 flex-wrap">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const mainU = story.universes.find((u) => u.isMain);
-                              if (mainU) onCanonTransferred?.(mainU.label, universe.label);
-                              onSetMain(universe.id);
-                              onClose();
-                            }}
-                            className="text-xs text-white/30 hover:text-white/70 transition-colors px-2 py-1 rounded border border-white/10 hover:border-white/30"
-                          >
-                            정사로 전환
-                          </button>
                           {onLike && (
                             <button
                               onClick={(e) => {
@@ -419,26 +401,41 @@ export default function UniversePanel({
                                 onLike(universe.id);
                                 addFloat(e.clientX, e.clientY);
                               }}
-                              className="text-xs text-white/30 hover:text-orange-400/70 transition-colors px-2 py-1 rounded border border-white/10 hover:border-orange-400/30"
+                              className="text-xs text-white/40 hover:text-pink-400/80 transition-colors px-2 py-1 rounded border border-white/10 hover:border-pink-400/30"
                             >
-                              👍 응원
+                              ❤️ 응원 · {rawLikes}
                             </button>
                           )}
-                          <button
-                            onClick={(e) => handleDeleteClick(e, universe.id)}
-                            className="text-xs text-red-400/40 hover:text-red-400/80 transition-colors px-2 py-1 rounded border border-red-400/10 hover:border-red-400/30"
-                          >
-                            삭제
-                          </button>
+                          {!isCurrentMain && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const mainU = story.universes.find((u) => u.isMain);
+                                if (mainU) onCanonTransferred?.(mainU.label, universe.label);
+                                onSetMain(universe.id);
+                                onClose();
+                              }}
+                              className="text-xs text-white/30 hover:text-white/70 transition-colors px-2 py-1 rounded border border-white/10 hover:border-white/30"
+                            >
+                              정사로 전환
+                            </button>
+                          )}
+                          {!isCurrentMain && (
+                            <button
+                              onClick={(e) => handleDeleteClick(e, universe.id)}
+                              className="text-xs text-red-400/40 hover:text-red-400/80 transition-colors px-2 py-1 rounded border border-red-400/10 hover:border-red-400/30"
+                            >
+                              삭제
+                            </button>
+                          )}
                         </div>
                       )}
 
-                      {/* 투표 버튼 — 비(非)정사 카드에 무조건 표시 (디버그용) */}
-                      {!isCurrentMain && onShowVote && !isConfirming && (
+                      {/* 투표 버튼 행 — 비(非)정사 + 150% 이상일 때만 표시, 별도 행 */}
+                      {!isCurrentMain && isChallenger150 && onShowVote && !isConfirming && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log("[UniversePanel] 투표 버튼 클릭 — universeId:", universe.id, "rawRatio:", rawRatio.toFixed(2), "scoreRatio:", ratio.toFixed(2));
                             onShowVote(universe.id);
                           }}
                           className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${
