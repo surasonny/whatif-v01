@@ -11,6 +11,7 @@ import CanonWarAlert from "@/app/components/CanonWarAlert";
 import VotePanel from "@/app/components/VotePanel";
 import LikeFloating from "@/app/components/LikeFloating";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
+import { useAuth } from "@/app/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 
 export default function ReaderClient() {
@@ -32,14 +33,13 @@ export default function ReaderClient() {
   const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
   const { nickname: myNickname } = useMyNickname();
+  const { user, nickname: authNickname, loading: authLoading, signOut, openAuthModal } = useAuth();
 
-  // 에피소드 변경 시 투표 여부 재조회
-  // cancelled 플래그로 stale 비동기 콜백이 state를 덮어쓰지 못하게 방지
+  // 에피소드 변경 또는 로그인 상태 변경 시 투표 여부 재조회
   useEffect(() => {
     let cancelled = false;
-    const nickname = localStorage.getItem("whatif_nickname");
-    console.log("[checkVoteStatus] called, nickname:", nickname, "episodeIndex:", episodeIndex);
-    if (!nickname) {
+    if (authLoading) return () => { cancelled = true; };
+    if (!authNickname) {
       setHasVotedCurrentEpisode(false);
       return () => { cancelled = true; };
     }
@@ -48,16 +48,14 @@ export default function ReaderClient() {
       .select("id")
       .eq("story_id", storyId)
       .eq("episode", episodeIndex)
-      .eq("nickname", nickname)
+      .eq("nickname", authNickname)
       .limit(1)
-      .then(({ data, error }) => {
+      .then(({ data }) => {
         if (cancelled) return;
-        const voted = !!(data && data.length > 0);
-        console.log("[checkVoteStatus] result:", data, error, "→ voted:", voted);
-        setHasVotedCurrentEpisode(voted);
+        setHasVotedCurrentEpisode(!!(data && data.length > 0));
       });
     return () => { cancelled = true; };
-  }, [storyId, episodeIndex]);
+  }, [storyId, episodeIndex, authNickname, authLoading]);
 
   // 렌더마다 동기 업데이트 — 스와이프 핸들러 클로저에서 최신값 읽기 위해
   const anyPanelOpenRef = useRef(false);
@@ -495,12 +493,31 @@ export default function ReaderClient() {
         <div className="flex-shrink-0 z-20">
           {/* 1행: 홈 / 제목 / 화수+유니버스 */}
           <div className="flex items-center justify-between px-6 pt-4 pb-1">
-            <button
-              onClick={() => router.push("/")}
-              className="text-white/50 text-sm hover:text-white transition-colors"
-            >
-              ← 홈
-            </button>
+            <div className="flex flex-col items-start gap-0.5">
+              <button
+                onClick={() => router.push("/")}
+                className="text-white/50 text-sm hover:text-white transition-colors"
+              >
+                ← 홈
+              </button>
+              {!authLoading && (
+                user ? (
+                  <button
+                    onClick={signOut}
+                    className="text-white/25 text-xs hover:text-white/50 transition-colors"
+                  >
+                    {authNickname ?? user.email?.split("@")[0]} · 로그아웃
+                  </button>
+                ) : (
+                  <button
+                    onClick={openAuthModal}
+                    className="text-white/25 text-xs hover:text-white/50 transition-colors"
+                  >
+                    로그인
+                  </button>
+                )
+              )}
+            </div>
             <div className="text-center">
               <p className="text-white/80 text-sm font-medium">{story.title}</p>
               <p className="text-white/40 text-xs">{universe.label}</p>

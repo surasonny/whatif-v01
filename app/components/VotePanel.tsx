@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-
-const NICKNAME_KEY = "whatif_nickname";
-const NICKNAME_MAX = 10;
+import { useAuth } from "./AuthProvider";
 
 // ── 정사 전환 조건 (테스트값 — 프로덕션: 10, 0.6) ──────────────
 const TRANSFER_MIN_VOTES = 1;
@@ -25,7 +23,7 @@ interface Props {
   onVoteCast?: () => void;
 }
 
-type Phase = "no-nickname" | "can-vote" | "voted";
+type Phase = "no-auth" | "can-vote" | "voted";
 
 export default function VotePanel({
   storyId,
@@ -35,8 +33,9 @@ export default function VotePanel({
   onTransferComplete,
   onVoteCast,
 }: Props) {
-  const [nickname, setNickname]     = useState("");
-  const [phase, setPhase]           = useState<Phase>("no-nickname");
+  const { user, nickname: authNickname, loading: authLoading, openAuthModal } = useAuth();
+
+  const [phase, setPhase]           = useState<Phase>("no-auth");
   const [chosenId, setChosenId]     = useState<string | null>(null);
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVotes, setTotalVotes] = useState(0);
@@ -47,17 +46,15 @@ export default function VotePanel({
   const mountTimeRef      = useRef(Date.now());
   const transferCalledRef = useRef(false);
 
-  // 마운트 시 저장된 닉네임 확인 → 투표 기록 조회
+  // auth 상태가 확정된 후 투표 데이터 로드
   useEffect(() => {
-    let saved = "";
-    try { saved = localStorage.getItem(NICKNAME_KEY) ?? ""; } catch {}
-    if (saved) {
-      setNickname(saved);
-      loadVotes(saved);
-    } else {
-      setPhase("no-nickname");
+    if (authLoading) return;
+    if (!authNickname) {
+      setPhase("no-auth");
+      return;
     }
-  }, []);
+    loadVotes(authNickname);
+  }, [authNickname, authLoading]);
 
   async function loadVotes(nick: string) {
     setLoading(true);
@@ -80,9 +77,7 @@ export default function VotePanel({
       setTotalVotes(total);
 
       const mine = (rows ?? []).find((r) => r.nickname === nick);
-      const newPhase: Phase = mine ? "voted" : "can-vote";
-
-      console.log("[VotePanel init] phase:", newPhase, "chosenId:", mine?.universe_id ?? null);
+      console.log("[VotePanel init] phase:", mine ? "voted" : "can-vote", "chosenId:", mine?.universe_id ?? null);
 
       if (mine) {
         setChosenId(mine.universe_id);
@@ -99,14 +94,6 @@ export default function VotePanel({
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleSetNickname() {
-    const trimmed = nickname.trim();
-    if (!trimmed) return;
-    try { localStorage.setItem(NICKNAME_KEY, trimmed); } catch {}
-    setNickname(trimmed);
-    loadVotes(trimmed);
   }
 
   async function checkAndTransfer(
@@ -131,7 +118,7 @@ export default function VotePanel({
     const winnerPct = (counts[winner.id] ?? 0) / total;
     if (winnerPct < TRANSFER_MIN_PCT) return;
 
-    // main_transfers 테이블에 이미 이 에피소드의 전환 기록이 있으면 스킵
+    // main_transfers 테이블에 이미 이 에피소드 전환 기록이 있으면 스킵
     try {
       const { data: existing } = await supabase
         .from("main_transfers")
@@ -145,18 +132,18 @@ export default function VotePanel({
         return;
       }
     } catch {
-      // 조회 실패 시에도 전환 시도는 계속 (insert에서 중복 방지됨)
+      // 조회 실패 시에도 전환 시도 계속
     }
 
     transferCalledRef.current = true;
 
     try {
       await supabase.from("main_transfers").insert({
-        story_id: storyId,
+        story_id:         storyId,
         episode,
         from_universe_id: mainU.id,
         to_universe_id:   winner.id,
-        trigger: "vote",
+        trigger:          "vote",
       });
     } catch (e) {
       console.error("[VotePanel] main_transfers 기록 실패:", e);
@@ -166,7 +153,7 @@ export default function VotePanel({
   }
 
   async function handleVote(universeId: string) {
-    if (phase !== "can-vote" || submitting) return;
+    if (phase !== "can-vote" || submitting || !authNickname) return;
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -174,7 +161,7 @@ export default function VotePanel({
         story_id:    storyId,
         episode,
         universe_id: universeId,
-        nickname,
+        nickname:    authNickname,
       });
 
       if (error) {
@@ -210,16 +197,18 @@ export default function VotePanel({
   const mainUniverse = universes.find((u) => u.isMain);
   const challengers  = universes.filter((u) => !u.isMain);
 
-  // 전환 조건 달성 여부 — 투표 데이터 기준 실시간 계산
+  // 전환 조건 달성 여부
   const conditionMet = (() => {
     if (totalVotes < TRANSFER_MIN_VOTES) return false;
     if (challengers.length === 0) return false;
-    const topChallenger = challengers.reduce((best, u) =>
+    const top = challengers.reduce((best, u) =>
       (voteCounts[u.id] ?? 0) > (voteCounts[best.id] ?? 0) ? u : best,
       challengers[0],
     );
-    return (voteCounts[topChallenger.id] ?? 0) / totalVotes >= TRANSFER_MIN_PCT;
+    return (voteCounts[top.id] ?? 0) / totalVotes >= TRANSFER_MIN_PCT;
   })();
+
+  const isLoading = loading || authLoading;
 
   const blockAll = (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -288,79 +277,55 @@ export default function VotePanel({
           </p>
         </div>
 
-        {/* 로딩 — phase 확정 전 */}
-        {loading && (
+        {/* 로딩 */}
+        {isLoading && (
           <div className="py-10 text-center">
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.25)" }}>집계 불러오는 중…</p>
           </div>
         )}
 
-        {/* ── 상태 A: 닉네임 없음 ── */}
-        {!loading && phase === "no-nickname" && (
-          <div className="mb-5 p-4 rounded-2xl" style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <p className="text-sm text-center mb-4" style={{ color: "rgba(255,255,255,0.5)" }}>
-              닉네임을 설정하면 투표할 수 있습니다
+        {/* ── 상태 A: 로그인 필요 ── */}
+        {!isLoading && phase === "no-auth" && (
+          <div className="mb-5 p-6 rounded-2xl text-center" style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <p className="text-sm mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
+              로그인하면 투표에 참여할 수 있습니다
             </p>
-            <input
-              type="text"
-              placeholder={`닉네임 입력 (최대 ${NICKNAME_MAX}자)`}
-              maxLength={NICKNAME_MAX}
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSetNickname()}
-              autoFocus
-              className="w-full bg-transparent text-white text-sm py-2 mb-4 outline-none"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.2)" }}
-            />
+            <p className="text-xs mb-5" style={{ color: "rgba(255,255,255,0.25)" }}>
+              닉네임으로 투표 기록이 저장됩니다
+            </p>
             <button
-              onClick={(e) => { blockAll(e); handleSetNickname(); }}
+              onClick={(e) => { blockAll(e); onClose(); openAuthModal(); }}
               onPointerDown={blockAll}
               onMouseDown={blockAll}
-              disabled={!nickname.trim()}
-              className="w-full py-2.5 rounded-xl text-amber-400 text-sm font-semibold transition-all active:scale-95"
-              style={{ backgroundColor: "rgba(251,191,36,0.2)", border: "1px solid rgba(251,191,36,0.3)" }}
+              className="px-6 py-2.5 rounded-xl text-amber-400 text-sm font-semibold transition-all active:scale-95"
+              style={{ backgroundColor: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)" }}
             >
-              설정하기
+              로그인 / 회원가입
             </button>
           </div>
         )}
 
-        {/* ── 상태 B/C: 닉네임 + 변경 버튼 + 투표 완료 뱃지 ── */}
-        {!loading && phase !== "no-nickname" && nickname && (
+        {/* ── 상태 B/C: 로그인 유저 닉네임 + 투표 완료 뱃지 ── */}
+        {!isLoading && phase !== "no-auth" && authNickname && (
           <div className="flex items-center justify-center gap-2 mb-4">
-            <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>{nickname} 님</span>
+            <span className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>{authNickname} 님</span>
             {phase === "voted" && (
               <span className="text-xs px-2 py-0.5 rounded-full text-amber-400" style={{ backgroundColor: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.25)", opacity: 0.7 }}>
                 투표 완료 ✓
               </span>
             )}
-            <button
-              onClick={(e) => {
-                blockAll(e);
-                try { localStorage.removeItem(NICKNAME_KEY); } catch {}
-                setNickname("");
-                setChosenId(null);
-                setPhase("no-nickname");
-              }}
-              onPointerDown={blockAll}
-              onMouseDown={blockAll}
-              className="text-xs transition-colors"
-              style={{ color: "rgba(255,255,255,0.2)" }}
-            >
-              변경
-            </button>
           </div>
         )}
 
         {/* 참여자 수 */}
-        {!loading && phase !== "no-nickname" && (
+        {!isLoading && phase !== "no-auth" && (
           <p className="text-xs text-center mb-4" style={{ color: "rgba(255,255,255,0.2)" }}>
             {totalVotes > 0 ? `총 ${totalVotes}명 참여` : "아직 투표가 없습니다"}
           </p>
         )}
 
         {/* ── 투표 카드 (상태 B, C) ── */}
-        {!loading && phase !== "no-nickname" && (
+        {!isLoading && phase !== "no-auth" && (
           <div className="flex flex-col gap-3">
             {mainUniverse && (
               <UniverseCard

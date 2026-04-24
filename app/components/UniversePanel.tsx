@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Story, Universe } from "@/lib/types";
 import { deleteUniverse, calcUniverseScore } from "@/lib/store";
 import LikeFloating from "./LikeFloating";
+import { useAuth } from "./AuthProvider";
 
 const CHALLENGE_THRESHOLD = 1.5;
 const TRANSFER_THRESHOLD = 2.0;
@@ -37,6 +38,7 @@ export default function UniversePanel({
   currentEpisode = 0,
   hasVoted = false,
 }: Props) {
+  const { user, openAuthModal } = useAuth();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -412,6 +414,7 @@ export default function UniversePanel({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!user) { openAuthModal(); return; }
                                 onLike(universe.id);
                                 addFloat(e.clientX, e.clientY);
                               }}
