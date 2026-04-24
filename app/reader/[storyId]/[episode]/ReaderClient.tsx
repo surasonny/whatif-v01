@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AppState, Story, Universe, Episode, Comment } from "@/lib/types";
+import { AppState, Story, Universe, Episode, Comment, MainHistory } from "@/lib/types";
 import { saveState, loadState, deleteEpisode, deleteStory, checkCanonWar } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
@@ -11,24 +11,58 @@ import CanonWarAlert from "@/app/components/CanonWarAlert";
 import VotePanel from "@/app/components/VotePanel";
 import LikeFloating from "@/app/components/LikeFloating";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
+import { supabase } from "@/lib/supabase";
+
+const VOTE_NICKNAME_KEY = "whatif_nickname";
 
 export default function ReaderClient() {
   const params = useParams();
   const router = useRouter();
 
-  const storyId = params.storyId as string;
+  const storyId      = params.storyId as string;
   const episodeParam = params.episode as string;
 
-  const [appState, setAppState] = useState<AppState | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [episodeIndex, setEpisodeIndex] = useState(0);
-  const [universeIndex, setUniverseIndex] = useState(0);
-  const [showSnapshot, setShowSnapshot] = useState(false);
+  const [appState, setAppState]             = useState<AppState | null>(null);
+  const [mounted, setMounted]               = useState(false);
+  const [episodeIndex, setEpisodeIndex]     = useState(0);
+  const [universeIndex, setUniverseIndex]   = useState(0);
+  const [showSnapshot, setShowSnapshot]     = useState(false);
   const [showUniversePanel, setShowUniversePanel] = useState(false);
-  const [canonAlert, setCanonAlert] = useState<{ from: string; to: string } | null>(null);
-  const [showVotePanel, setShowVotePanel] = useState(false);
-  const [likeFloats, setLikeFloats] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [canonAlert, setCanonAlert]         = useState<{ from: string; to: string } | null>(null);
+  const [showVotePanel, setShowVotePanel]   = useState(false);
+  const [transferToast, setTransferToast]   = useState(false);
+  const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
+  const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
   const { nickname: myNickname } = useMyNickname();
+
+  // 현재 에피소드 투표 여부 조회 — 에피소드 변경 시 및 VotePanel 닫힐 때 호출
+  const checkVoteStatus = useCallback((episode: number) => {
+    console.log("[checkVoteStatus] called, episode:", episode);
+    let nick = "";
+    try { nick = localStorage.getItem(VOTE_NICKNAME_KEY) ?? ""; } catch {}
+    if (!nick) {
+      setHasVotedCurrentEpisode(false);
+      console.log("[hasVoted check] 닉네임 없음 → false");
+      return;
+    }
+    console.log("[hasVoted check] nickname:", nick, "episode:", episode);
+    supabase
+      .from("votes")
+      .select("id")
+      .eq("story_id", storyId)
+      .eq("episode", episode)
+      .eq("nickname", nick)
+      .limit(1)
+      .then(({ data }) => {
+        console.log("[hasVoted result]", data);
+        const voted = (data?.length ?? 0) > 0;
+        setHasVotedCurrentEpisode(voted);
+      });
+  }, [storyId]);
+
+  useEffect(() => {
+    checkVoteStatus(episodeIndex);
+  }, [episodeIndex, checkVoteStatus]);
 
   // 렌더마다 동기 업데이트 — 스와이프 핸들러 클로저에서 최신값 읽기 위해
   const anyPanelOpenRef = useRef(false);
@@ -41,6 +75,58 @@ export default function ReaderClient() {
     setShowUniversePanel(false);
     setShowVotePanel(true);
   }, []);
+
+  // 투표로 정사 전환 완료 처리
+  const handleTransferComplete = useCallback((toUniverseId: string) => {
+    setAppState((prev) => {
+      if (!prev) return prev;
+      const targetStory = prev.stories.find((s) => s.id === storyId);
+      if (!targetStory) return prev;
+
+      const fromUniverse = targetStory.universes.find((u) => u.isMain);
+      const toUniverse   = targetStory.universes.find((u) => u.id === toUniverseId);
+
+      const newEntry: MainHistory = {
+        fromUniverseId:    fromUniverse?.id    ?? "",
+        fromUniverseLabel: fromUniverse?.label ?? "",
+        toUniverseId,
+        toUniverseLabel:   toUniverse?.label   ?? "",
+        date: new Date().toISOString(),
+        totalLikes: targetStory.universes.reduce(
+          (sum, u) => sum + u.episodes.reduce((s, ep) => s + ep.likes, 0),
+          0,
+        ),
+      };
+
+      const updated: AppState = {
+        ...prev,
+        stories: prev.stories.map((s) => {
+          if (s.id !== storyId) return s;
+          return {
+            ...s,
+            mainHistory: [...(s.mainHistory ?? []), newEntry],
+            universes: s.universes.map((u) => ({
+              ...u,
+              isMain: u.id === toUniverseId,
+            })),
+          };
+        }),
+      };
+
+      saveState(updated);
+      import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
+        const updatedStory = updated.stories.find((s) => s.id === storyId);
+        if (updatedStory) saveStoryToSupabase(updatedStory);
+      });
+
+      return updated;
+    });
+
+    setHasVotedCurrentEpisode(true);
+    setTransferToast(true);
+    setTimeout(() => setTransferToast(false), 4000);
+    setShowVotePanel(false);
+  }, [storyId]);
 
   useEffect(() => {
     async function init() {
@@ -83,12 +169,12 @@ export default function ReaderClient() {
 
     const onTouchEnd = (e: TouchEvent) => {
       if (anyPanelOpenRef.current) return;
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
+      const endX  = e.changedTouches[0].clientX;
+      const endY  = e.changedTouches[0].clientY;
       const diffX = startX - endX;
       const diffY = startY - endY;
-      const absX = Math.abs(diffX);
-      const absY = Math.abs(diffY);
+      const absX  = Math.abs(diffX);
+      const absY  = Math.abs(diffY);
 
       if (absX > absY && absX > 40) {
         console.log("[Swipe] 에피소드 스와이프 실행 (touch) — anyPanelOpen:", anyPanelOpenRef.current);
@@ -112,8 +198,8 @@ export default function ReaderClient() {
       if (anyPanelOpenRef.current) return;
       const diffX = startX - e.clientX;
       const diffY = startY - e.clientY;
-      const absX = Math.abs(diffX);
-      const absY = Math.abs(diffY);
+      const absX  = Math.abs(diffX);
+      const absY  = Math.abs(diffY);
 
       if (absX > absY && absX > 60) {
         console.log("[Swipe] 에피소드 스와이프 실행 (mouse) — anyPanelOpen:", anyPanelOpenRef.current);
@@ -127,16 +213,17 @@ export default function ReaderClient() {
       }
     };
 
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mouseup", onMouseUp);
+    // passive: false — preventDefault를 호출할 수 있어야 하므로
+    window.addEventListener("touchstart", onTouchStart, { passive: false });
+    window.addEventListener("touchend",   onTouchEnd,   { passive: false });
+    window.addEventListener("mousedown",  onMouseDown);
+    window.addEventListener("mouseup",    onMouseUp);
 
     return () => {
       window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchend",   onTouchEnd);
+      window.removeEventListener("mousedown",  onMouseDown);
+      window.removeEventListener("mouseup",    onMouseUp);
     };
   }, [appState, storyId, universeIndex]);
 
@@ -364,15 +451,15 @@ export default function ReaderClient() {
   }
 
   const universe: Universe = story.universes[universeIndex] ?? story.universes[0];
-  const episode: Episode = universe.episodes[episodeIndex] ?? universe.episodes[0];
-  const totalEpisodes = universe.episodes.length;
-  const totalUniverses = story.universes.length;
-  const canRemix = episode.remixAllowed;
-  const isMyStory = myNickname && myNickname === story.author;
+  const episode: Episode   = universe.episodes[episodeIndex] ?? universe.episodes[0];
+  const totalEpisodes      = universe.episodes.length;
+  const totalUniverses     = story.universes.length;
+  const canRemix           = episode.remixAllowed;
+  const isMyStory          = myNickname && myNickname === story.author;
 
   const headerBadge = (() => {
     if (totalUniverses <= 1) return null;
-    const mainU = story.universes.find((u) => u.isMain);
+    const mainU     = story.universes.find((u) => u.isMain);
     const mainLikes = mainU ? mainU.episodes.reduce((s, e) => s + e.likes, 0) : 0;
     if (mainLikes === 0) return null;
     const topRatio = story.universes.reduce((max, u) => {
@@ -387,6 +474,27 @@ export default function ReaderClient() {
 
   return (
     <>
+      {/* ── 정사 전환 토스트 ── */}
+      {transferToast && (
+        <div
+          className="fixed top-0 left-0 right-0 flex justify-center z-[100000] pointer-events-none"
+          style={{ paddingTop: "env(safe-area-inset-top, 16px)" }}
+        >
+          <div
+            className="mt-4 px-5 py-3 rounded-2xl text-sm font-semibold"
+            style={{
+              backgroundColor: "rgba(251,191,36,0.15)",
+              border: "1px solid rgba(251,191,36,0.4)",
+              color: "rgb(251,191,36)",
+              backdropFilter: "blur(12px)",
+              boxShadow: "0 4px 24px rgba(251,191,36,0.15)",
+            }}
+          >
+            ⚔️ 정사가 교체됐습니다
+          </div>
+        </div>
+      )}
+
       <div className="w-full bg-black flex flex-col" style={{ height: "100dvh" }}>
 
         <div className="flex-shrink-0 z-20">
@@ -749,8 +857,8 @@ export default function ReaderClient() {
           onCanonTransferred={(from, to) => setCanonAlert({ from, to })}
           onShowVote={handleShowVote}
           onLike={handleUniverseLike}
-          votes={appState.votes ?? []}
-          voterNickname={myNickname ?? ""}
+          currentEpisode={episodeIndex}
+          hasVoted={hasVotedCurrentEpisode}
         />
       )}
 
@@ -759,7 +867,13 @@ export default function ReaderClient() {
           storyId={storyId}
           episode={episodeIndex}
           universes={story.universes.map((u) => ({ id: u.id, label: u.label, isMain: u.isMain }))}
-          onClose={() => setShowVotePanel(false)}
+          onClose={() => {
+            setShowVotePanel(false);
+            // VotePanel 닫힐 때 투표 여부 재조회 (투표 후 버튼 텍스트 갱신)
+            checkVoteStatus(episodeIndex);
+          }}
+          onTransferComplete={handleTransferComplete}
+          onVoteCast={() => setHasVotedCurrentEpisode(true)}
         />
       )}
     </>

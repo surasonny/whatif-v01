@@ -5,6 +5,7 @@ export type Universe = {
   branchFromEpisode: number | null
   episodes: Episode[]
   challengeStartedAt?: string | null
+  remixedFromEpisode?: number
 }
 
 export type Episode = {

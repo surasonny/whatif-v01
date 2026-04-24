@@ -19,8 +19,8 @@ interface Props {
   onCanonTransferred?: (fromLabel: string, toLabel: string) => void;
   onShowVote?: (universeId: string) => void;
   onLike?: (universeId: string) => void;
-  votes?: import("@/lib/types").Vote[];
-  voterNickname?: string;
+  currentEpisode?: number;
+  hasVoted?: boolean;
 }
 
 export default function UniversePanel({
@@ -34,8 +34,8 @@ export default function UniversePanel({
   onCanonTransferred,
   onShowVote,
   onLike,
-  votes,
-  voterNickname,
+  currentEpisode = 0,
+  hasVoted = false,
 }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -73,15 +73,23 @@ export default function UniversePanel({
     setTimeout(() => setLikeFloats((prev) => prev.filter((f) => f.id !== id)), 1100);
   }
 
+  // 유니버스 별 "N대 정사" 세대 번호 계산
+  function getGeneration(universeId: string): number | null {
+    if (!story.mainHistory || story.mainHistory.length === 0) return null;
+    const u = story.universes.find((u) => u.id === universeId);
+    if (u?.isMain) return story.mainHistory.length + 1;
+    if (story.mainHistory[0]?.fromUniverseId === universeId) return 1;
+    for (let i = 0; i < story.mainHistory.length; i++) {
+      if (story.mainHistory[i].toUniverseId === universeId) return i + 2;
+    }
+    return null;
+  }
+
   const mainUniverse = story.universes.find((u) => u.isMain);
   const mainScore = Math.round(mainUniverse ? calcUniverseScore(mainUniverse, comments) : 0);
   const mainRawLikes = mainUniverse
     ? mainUniverse.episodes.reduce((s, e) => s + (Number(e.likes) || 0), 0)
     : 0;
-
-  const hasVoted = !!(votes?.some(
-    (v) => v.storyId === story.id && v.voter === (voterNickname ?? "")
-  ));
 
   return (
     <>
@@ -234,18 +242,15 @@ export default function UniversePanel({
                 const isConfirming = confirmDeleteId === universe.id;
                 const score = Math.round(calcUniverseScore(universe, comments));
 
-                // raw likes 기반 비율 계산
                 const rawLikes = universe.episodes.reduce((s, e) => s + (Number(e.likes) || 0), 0);
                 const rawRatio = !isCurrentMain && mainRawLikes > 0 ? rawLikes / mainRawLikes : 0;
                 const isChallenger150 = !isCurrentMain && rawRatio >= CHALLENGE_THRESHOLD;
                 const isChallenger200 = !isCurrentMain && rawRatio >= TRANSFER_THRESHOLD;
 
-                // 진행률 바 (raw likes 기준, 200% = 100%)
                 const progressPct = !isCurrentMain && mainRawLikes > 0
                   ? Math.min((rawLikes / (mainRawLikes * TRANSFER_THRESHOLD)) * 100, 100)
                   : 0;
 
-                // score 기반 비율 (표시용)
                 const ratio = mainScore > 0 ? score / mainScore : 0;
                 const isChallenged = isCurrentMain && story.universes.some((u) => {
                   if (u.isMain) return false;
@@ -284,6 +289,15 @@ export default function UniversePanel({
                         {isCurrentMain && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/50">정사</span>
                         )}
+                        {(() => {
+                          const gen = getGeneration(universe.id);
+                          if (!gen) return null;
+                          return (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400/70 border border-amber-400/20">
+                              👑 {gen}대 정사
+                            </span>
+                          );
+                        })()}
                         {isChallenged && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-400/20 text-red-400/80 border border-red-400/20">
                             ⚔ 도전받는 중
@@ -391,7 +405,7 @@ export default function UniversePanel({
                         )}
                       </p>
 
-                      {/* 응원 버튼 행 — 모든 카드에 표시 */}
+                      {/* 응원 버튼 행 */}
                       {!isConfirming && (
                         <div className="flex items-center gap-2 flex-wrap">
                           {onLike && (
@@ -431,8 +445,8 @@ export default function UniversePanel({
                         </div>
                       )}
 
-                      {/* 투표 버튼 행 — 비(非)정사 + 150% 이상일 때만 표시, 별도 행 */}
-                      {!isCurrentMain && isChallenger150 && onShowVote && !isConfirming && (
+                      {/* 투표 버튼 — 비정사 + 150% 이상 + 분기점 이후 */}
+                      {!isCurrentMain && isChallenger150 && onShowVote && !isConfirming && currentEpisode >= (universe.remixedFromEpisode ?? 0) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -440,7 +454,7 @@ export default function UniversePanel({
                           }}
                           className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${
                             hasVoted
-                              ? "text-white/50 border-white/20 bg-white/5 hover:bg-white/8"
+                              ? "text-white/50 border-white/20 bg-white/5"
                               : "text-amber-400 border-amber-400/50 bg-amber-400/8 hover:bg-amber-400/15 animate-pulse"
                           }`}
                         >
