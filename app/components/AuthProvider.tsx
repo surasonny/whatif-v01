@@ -9,7 +9,6 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { getProfile } from "@/lib/auth";
 import AuthModal from "./AuthModal";
 
 type AuthContextType = {
@@ -32,6 +31,41 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+async function resolveNickname(user: User): Promise<string> {
+  // 1순위: profiles 테이블
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("nickname")
+    .eq("id", user.id)
+    .single();
+
+  if (data?.nickname) {
+    console.log("[AuthProvider] profiles에서 닉네임 로드:", data.nickname);
+    return data.nickname;
+  }
+
+  if (error) {
+    console.warn("[AuthProvider] profiles 조회 실패:", error.message);
+  }
+
+  // 2순위: signUp 시 저장한 user_metadata
+  const metaNickname = user.user_metadata?.nickname as string | undefined;
+  if (metaNickname) {
+    console.log("[AuthProvider] user_metadata에서 닉네임 로드:", metaNickname);
+    // profiles에 없으면 여기서 insert 시도
+    const { error: upsertError } = await supabase
+      .from("profiles")
+      .upsert({ id: user.id, nickname: metaNickname });
+    if (upsertError) {
+      console.error("[AuthProvider] profiles 백필 실패:", upsertError.message);
+    }
+    return metaNickname;
+  }
+
+  // 3순위: 이메일 앞부분 (최후 fallback)
+  return user.email?.split("@")[0] ?? "익명";
+}
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]         = useState<User | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
@@ -39,11 +73,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // 초기 세션 — hydration 이후 클라이언트에서만 실행
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) setNickname(await getProfile(u.id));
+      if (u) {
+        const nick = await resolveNickname(u);
+        setNickname(nick);
+      }
       setLoading(false);
     });
 
@@ -52,7 +88,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const u = session?.user ?? null;
         setUser(u);
         if (u) {
-          setNickname(await getProfile(u.id));
+          const nick = await resolveNickname(u);
+          setNickname(nick);
         } else {
           setNickname(null);
         }

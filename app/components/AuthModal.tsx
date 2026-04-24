@@ -43,11 +43,32 @@ export default function AuthModal({ onClose, onSuccess }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
+      // user_metadata에 nickname 저장 — 이메일 인증 전에도 사용 가능
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { nickname: nickname.trim() },
+        },
+      });
+      if (signUpError) throw signUpError;
+
       if (data.user) {
-        await upsertProfile(data.user.id, nickname.trim());
+        // profiles 테이블에도 insert
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert({ id: data.user.id, nickname: nickname.trim() });
+        if (profileError) {
+          console.error("[AuthModal] profiles upsert 실패:", profileError);
+        } else {
+          console.log("[AuthModal] profiles upsert 성공:", nickname.trim());
+        }
+      } else {
+        // 이메일 인증 필요한 경우 — user가 null로 올 수 있음
+        // onAuthStateChange에서 SIGNED_IN 이벤트 때 처리됨
+        console.log("[AuthModal] signUp 완료, user null (이메일 인증 대기 중)");
       }
+
       onSuccess();
     } catch (e: any) {
       setError(
@@ -157,15 +178,6 @@ export default function AuthModal({ onClose, onSuccess }: Props) {
           >
             {loading ? "처리 중…" : tab === "login" ? "로그인" : "가입하기"}
           </button>
-
-          {/* 구글 소셜 로그인 — 향후 추가
-          <button
-            onClick={() => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } })}
-            className="w-full py-3 rounded-xl text-sm font-medium border border-white/10 text-white/50 hover:text-white/80 hover:border-white/20 transition-all mt-1"
-          >
-            Google로 계속하기
-          </button>
-          */}
         </div>
       </div>
     </div>
