@@ -6,9 +6,9 @@ import { supabase } from "@/lib/supabase";
 const NICKNAME_KEY = "whatif_nickname";
 const NICKNAME_MAX = 10;
 
-// ── 정사 전환 조건 (MVP) ──────────────────────────
-const TRANSFER_MIN_VOTES = 1;    // 최소 총 투표 수
-const TRANSFER_MIN_PCT   = 0.5;  // 리믹스 최소 득표율
+// ── 정사 전환 조건 (테스트값 — 프로덕션: 10, 0.6) ──────────────
+const TRANSFER_MIN_VOTES = 1;
+const TRANSFER_MIN_PCT   = 0.5;
 
 interface Universe {
   id: string;
@@ -35,19 +35,19 @@ export default function VotePanel({
   onTransferComplete,
   onVoteCast,
 }: Props) {
-  const [nickname, setNickname] = useState("");
-  const [phase, setPhase] = useState<Phase>("no-nickname");
-  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [nickname, setNickname]     = useState("");
+  const [phase, setPhase]           = useState<Phase>("no-nickname");
+  const [chosenId, setChosenId]     = useState<string | null>(null);
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [totalVotes, setTotalVotes] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg]     = useState<string | null>(null);
 
   const mountTimeRef      = useRef(Date.now());
   const transferCalledRef = useRef(false);
 
-  // 마운트 시 저장된 닉네임 확인 → 바로 투표 기록 조회
+  // 마운트 시 저장된 닉네임 확인 → 투표 기록 조회
   useEffect(() => {
     let saved = "";
     try { saved = localStorage.getItem(NICKNAME_KEY) ?? ""; } catch {}
@@ -80,10 +80,9 @@ export default function VotePanel({
       setTotalVotes(total);
 
       const mine = (rows ?? []).find((r) => r.nickname === nick);
-      const newPhase: Phase  = mine ? "voted" : "can-vote";
-      const newChosenId      = mine ? mine.universe_id : null;
+      const newPhase: Phase = mine ? "voted" : "can-vote";
 
-      console.log("[VotePanel init] phase:", newPhase, "chosenId:", newChosenId);
+      console.log("[VotePanel init] phase:", newPhase, "chosenId:", mine?.universe_id ?? null);
 
       if (mine) {
         setChosenId(mine.universe_id);
@@ -91,6 +90,9 @@ export default function VotePanel({
       } else {
         setPhase("can-vote");
       }
+
+      // 패널 오픈 시점에도 전환 조건 체크 (투표 현황 보기로 열었을 때도 실행)
+      await checkAndTransfer(counts, total);
     } catch (e) {
       console.error("[VotePanel] 투표 불러오기 실패:", e);
       setPhase("can-vote");
@@ -129,6 +131,23 @@ export default function VotePanel({
     const winnerPct = (counts[winner.id] ?? 0) / total;
     if (winnerPct < TRANSFER_MIN_PCT) return;
 
+    // main_transfers 테이블에 이미 이 에피소드의 전환 기록이 있으면 스킵
+    try {
+      const { data: existing } = await supabase
+        .from("main_transfers")
+        .select("id")
+        .eq("story_id", storyId)
+        .eq("episode", episode)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        transferCalledRef.current = true;
+        return;
+      }
+    } catch {
+      // 조회 실패 시에도 전환 시도는 계속 (insert에서 중복 방지됨)
+    }
+
     transferCalledRef.current = true;
 
     try {
@@ -136,7 +155,7 @@ export default function VotePanel({
         story_id: storyId,
         episode,
         from_universe_id: mainU.id,
-        to_universe_id: winner.id,
+        to_universe_id:   winner.id,
         trigger: "vote",
       });
     } catch (e) {
@@ -152,7 +171,7 @@ export default function VotePanel({
     setErrorMsg(null);
     try {
       const { error } = await supabase.from("votes").insert({
-        story_id: storyId,
+        story_id:    storyId,
         episode,
         universe_id: universeId,
         nickname,
@@ -190,6 +209,17 @@ export default function VotePanel({
 
   const mainUniverse = universes.find((u) => u.isMain);
   const challengers  = universes.filter((u) => !u.isMain);
+
+  // 전환 조건 달성 여부 — 투표 데이터 기준 실시간 계산
+  const conditionMet = (() => {
+    if (totalVotes < TRANSFER_MIN_VOTES) return false;
+    if (challengers.length === 0) return false;
+    const topChallenger = challengers.reduce((best, u) =>
+      (voteCounts[u.id] ?? 0) > (voteCounts[best.id] ?? 0) ? u : best,
+      challengers[0],
+    );
+    return (voteCounts[topChallenger.id] ?? 0) / totalVotes >= TRANSFER_MIN_PCT;
+  })();
 
   const blockAll = (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -240,10 +270,21 @@ export default function VotePanel({
           </button>
         </div>
 
-        {/* 투표 조건 안내 */}
-        <div className="mb-4 px-3 py-2 rounded-xl text-center" style={{ backgroundColor: "rgba(251,191,36,0.05)", border: "1px solid rgba(251,191,36,0.1)" }}>
-          <p className="text-xs" style={{ color: "rgba(251,191,36,0.5)" }}>
-            총 {TRANSFER_MIN_VOTES}표 이상 · 리믹스 득표율 {Math.round(TRANSFER_MIN_PCT * 100)}% 이상 시 정사 자동 교체
+        {/* 투표 조건 안내 — 조건 달성 시 골드 강조 */}
+        <div
+          className="mb-4 px-3 py-2 rounded-xl text-center transition-all duration-500"
+          style={{
+            backgroundColor: conditionMet ? "rgba(251,191,36,0.12)" : "rgba(251,191,36,0.05)",
+            border: `1px solid ${conditionMet ? "rgba(251,191,36,0.5)" : "rgba(251,191,36,0.1)"}`,
+          }}
+        >
+          <p
+            className="text-xs font-semibold"
+            style={{ color: conditionMet ? "rgb(251,191,36)" : "rgba(251,191,36,0.45)" }}
+          >
+            {conditionMet
+              ? "⚡ 정사 전환 조건 달성! 교체 처리 중…"
+              : `총 ${TRANSFER_MIN_VOTES}표 이상 · 리믹스 득표율 ${Math.round(TRANSFER_MIN_PCT * 100)}% 이상 시 정사 자동 교체`}
           </p>
         </div>
 

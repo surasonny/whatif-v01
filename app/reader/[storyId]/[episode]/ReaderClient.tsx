@@ -34,12 +34,14 @@ export default function ReaderClient() {
   const { nickname: myNickname } = useMyNickname();
 
   // 에피소드 변경 시 투표 여부 재조회
+  // cancelled 플래그로 stale 비동기 콜백이 state를 덮어쓰지 못하게 방지
   useEffect(() => {
+    let cancelled = false;
     const nickname = localStorage.getItem("whatif_nickname");
     console.log("[checkVoteStatus] called, nickname:", nickname, "episodeIndex:", episodeIndex);
     if (!nickname) {
       setHasVotedCurrentEpisode(false);
-      return;
+      return () => { cancelled = true; };
     }
     supabase
       .from("votes")
@@ -49,9 +51,12 @@ export default function ReaderClient() {
       .eq("nickname", nickname)
       .limit(1)
       .then(({ data, error }) => {
-        console.log("[checkVoteStatus] result:", data, error);
-        setHasVotedCurrentEpisode(!!(data && data.length > 0));
+        if (cancelled) return;
+        const voted = !!(data && data.length > 0);
+        console.log("[checkVoteStatus] result:", data, error, "→ voted:", voted);
+        setHasVotedCurrentEpisode(voted);
       });
+    return () => { cancelled = true; };
   }, [storyId, episodeIndex]);
 
   // 렌더마다 동기 업데이트 — 스와이프 핸들러 클로저에서 최신값 읽기 위해
