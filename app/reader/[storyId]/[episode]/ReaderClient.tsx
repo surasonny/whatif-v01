@@ -33,7 +33,7 @@ export default function ReaderClient() {
   const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
   const { nickname: myNickname } = useMyNickname();
-  const { user, nickname: authNickname, loading: authLoading, signOut, openAuthModal } = useAuth();
+  const { user, nickname: authNickname, loading: authLoading, openAuthModal } = useAuth();
 
   // 에피소드 변경 또는 로그인 상태 변경 시 투표 여부 재조회
   useEffect(() => {
@@ -227,6 +227,7 @@ export default function ReaderClient() {
   }
 
   const handleLike = () => {
+    if (!user) { openAuthModal(); return; }
     if (!appState) return;
     const updated: AppState = {
       ...appState,
@@ -257,6 +258,7 @@ export default function ReaderClient() {
   };
 
   const handleDislike = () => {
+    if (!user) { openAuthModal(); return; }
     if (!appState) return;
     const updated: AppState = {
       ...appState,
@@ -493,31 +495,12 @@ export default function ReaderClient() {
         <div className="flex-shrink-0 z-20">
           {/* 1행: 홈 / 제목 / 화수+유니버스 */}
           <div className="flex items-center justify-between px-6 pt-4 pb-1">
-            <div className="flex flex-col items-start gap-0.5">
-              <button
-                onClick={() => router.push("/")}
-                className="text-white/50 text-sm hover:text-white transition-colors"
-              >
-                ← 홈
-              </button>
-              {!authLoading && (
-                user ? (
-                  <button
-                    onClick={signOut}
-                    className="text-white/25 text-xs hover:text-white/50 transition-colors"
-                  >
-                    {authNickname ?? user.email?.split("@")[0]} · 로그아웃
-                  </button>
-                ) : (
-                  <button
-                    onClick={openAuthModal}
-                    className="text-white/25 text-xs hover:text-white/50 transition-colors"
-                  >
-                    로그인
-                  </button>
-                )
-              )}
-            </div>
+            <button
+              onClick={() => router.push("/")}
+              className="text-white/50 text-sm hover:text-white transition-colors"
+            >
+              ← 홈
+            </button>
             <div className="text-center">
               <p className="text-white/80 text-sm font-medium">{story.title}</p>
               <p className="text-white/40 text-xs">{universe.label}</p>

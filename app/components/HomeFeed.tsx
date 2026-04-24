@@ -3,8 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppState, Story } from "@/lib/types";
-import { useMyNickname } from "@/app/components/AuthorModeToggle";
-import NicknameSetup from "@/app/components/AuthorModeToggle";
+import { useAuth } from "@/app/components/AuthProvider";
 
 const GENRE_COLORS: Record<string, string> = {
   SF: "#3b82f6",
@@ -28,12 +27,11 @@ const GENRE_COLORS: Record<string, string> = {
 
 export default function HomeFeed() {
   const router = useRouter();
+  const { user, nickname: authNickname, loading: authLoading, signOut, openAuthModal } = useAuth();
   const [appState, setAppState] = useState<AppState | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [showNicknameSetup, setShowNicknameSetup] = useState(false);
-  const { nickname } = useMyNickname();
 
   useEffect(() => {
     async function init() {
@@ -127,140 +125,150 @@ export default function HomeFeed() {
     < 1000 * 60 * 60 * 24);
 
   return (
-    <>
-      <div
-        ref={containerRef}
-        className="w-full overflow-hidden select-none relative bg-black"
-        style={{ touchAction: "none", height: "100dvh" }}
-      >
-        {/* 배경 이미지 */}
-        {bgImageUrl && (
-          <img
-            key={story.id}
-            src={bgImageUrl}
-            alt={story.title}
-            onLoad={() => setImgLoaded(true)}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-            style={{ opacity: imgLoaded ? 1 : 0 }}
-            draggable={false}
-          />
-        )}
+    <div
+      ref={containerRef}
+      className="w-full overflow-hidden select-none relative bg-black"
+      style={{ touchAction: "none", height: "100dvh" }}
+    >
+      {/* 배경 이미지 */}
+      {bgImageUrl && (
+        <img
+          key={story.id}
+          src={bgImageUrl}
+          alt={story.title}
+          onLoad={() => setImgLoaded(true)}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+          style={{ opacity: imgLoaded ? 1 : 0 }}
+          draggable={false}
+        />
+      )}
 
-        {/* 배경 없으면 그라디언트 */}
-        {!bgImageUrl && (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
-            }}
-          />
-        )}
+      {/* 배경 없으면 그라디언트 */}
+      {!bgImageUrl && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(160deg, ${story.coverColor} 0%, #000000 100%)`,
+          }}
+        />
+      )}
 
-        {/* 오버레이 — 위는 어둡게, 아래는 더 어둡게 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
+      {/* 오버레이 */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
 
-        {/* 상단 바 */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 pt-safe py-5">
-          <span className="text-white font-black text-2xl tracking-tighter">
-            What If
-          </span>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowNicknameSetup(true)}
-              className="text-white/50 text-xs hover:text-white transition-colors"
-            >
-              {nickname ? `@${nickname}` : "닉네임 설정"}
-            </button>
-            <button
-              onClick={() => router.push("/stories")}
-              className="text-white/50 text-xs hover:text-white transition-colors"
-            >
-              전체 →
-            </button>
-          </div>
+      {/* 상단 바 */}
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 pt-safe py-5">
+        <span className="text-white font-black text-2xl tracking-tighter">
+          What If
+        </span>
+        <div className="flex items-center gap-3">
+          {!authLoading && (
+            user ? (
+              <>
+                <span className="text-white/50 text-xs">
+                  {authNickname ?? user.email?.split("@")[0]} 님
+                </span>
+                <button
+                  onClick={signOut}
+                  className="text-white/35 text-xs hover:text-white transition-colors"
+                >
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={openAuthModal}
+                className="text-white/50 text-xs hover:text-white transition-colors"
+              >
+                로그인
+              </button>
+            )
+          )}
+          <button
+            onClick={() => router.push("/stories")}
+            className="text-white/50 text-xs hover:text-white transition-colors"
+          >
+            전체 →
+          </button>
         </div>
-
-        {/* 카드 콘텐츠 — 하단 */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-5" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))" }}>
-          {/* 장르 + 통계 */}
-          <div className="flex items-center gap-2 mb-2">
-            <span
-              className="text-xs font-bold px-2.5 py-1 rounded-full"
-              style={{
-                backgroundColor: `${genreColor}25`,
-                color: genreColor,
-                border: `1px solid ${genreColor}50`,
-              }}
-            >
-              {story.genre}
-            </span>
-            {isCanonWar && (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-400/20 text-red-400 border border-red-400/30 animate-pulse">
-                ⚔ 정사대전 중
-              </span>
-            )}
-            {recentlyTransferred && !isCanonWar && (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/30">
-                🔥 정사 교체됨
-              </span>
-            )}
-            <span className="text-white/30 text-xs">{totalEpisodes}화</span>
-            {totalUniverses > 1 && (
-              <span className="text-white/30 text-xs">· 유니버스 {totalUniverses}개</span>
-            )}
-          </div>
-
-          {/* 제목 */}
-          <h1 className="text-white font-black text-3xl leading-tight mb-1 tracking-tight line-clamp-2">
-            {story.title}
-          </h1>
-
-          {/* 작가 */}
-          <p className="text-white/40 text-xs mb-4">by {story.author}</p>
-
-          {/* 버튼 */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/reader/${story.id}/0`)}
-              className="flex-1 py-3 rounded-2xl bg-white text-black font-bold text-sm tracking-wide hover:bg-white/90 active:scale-95 transition-all"
-            >
-              1화부터 읽기
-            </button>
-            <button
-              onClick={() => router.push("/write/new")}
-              className="px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/20 active:scale-95 transition-all"
-            >
-              ✍️
-            </button>
-          </div>
-        </div>
-
-        {/* 우측 인디케이터 */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
-          {appState.stories.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentIndex(i)}
-              className={`w-1 rounded-full transition-all duration-300 ${
-                i === currentIndex ? "h-8 bg-white" : "h-2 bg-white/30"
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* 스와이프 힌트 */}
-        {currentIndex === 0 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-            <p className="text-white/20 text-xs tracking-widest animate-pulse">
-              ↕ 스와이프
-            </p>
-          </div>
-        )}
       </div>
 
-      {showNicknameSetup && (
-        <NicknameSetup onClose={() => setShowNicknameSetup(false)} />
+      {/* 카드 콘텐츠 — 하단 */}
+      <div className="absolute inset-x-0 bottom-0 z-10 px-5" style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))" }}>
+        {/* 장르 + 통계 */}
+        <div className="flex items-center gap-2 mb-2">
+          <span
+            className="text-xs font-bold px-2.5 py-1 rounded-full"
+            style={{
+              backgroundColor: `${genreColor}25`,
+              color: genreColor,
+              border: `1px solid ${genreColor}50`,
+            }}
+          >
+            {story.genre}
+          </span>
+          {isCanonWar && (
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-red-400/20 text-red-400 border border-red-400/30 animate-pulse">
+              ⚔ 정사대전 중
+            </span>
+          )}
+          {recentlyTransferred && !isCanonWar && (
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-400 border border-amber-400/30">
+              🔥 정사 교체됨
+            </span>
+          )}
+          <span className="text-white/30 text-xs">{totalEpisodes}화</span>
+          {totalUniverses > 1 && (
+            <span className="text-white/30 text-xs">· 유니버스 {totalUniverses}개</span>
+          )}
+        </div>
+
+        {/* 제목 */}
+        <h1 className="text-white font-black text-3xl leading-tight mb-1 tracking-tight line-clamp-2">
+          {story.title}
+        </h1>
+
+        {/* 작가 */}
+        <p className="text-white/40 text-xs mb-4">by {story.author}</p>
+
+        {/* 버튼 */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push(`/reader/${story.id}/0`)}
+            className="flex-1 py-3 rounded-2xl bg-white text-black font-bold text-sm tracking-wide hover:bg-white/90 active:scale-95 transition-all"
+          >
+            1화부터 읽기
+          </button>
+          <button
+            onClick={() => router.push("/write/new")}
+            className="px-4 py-3 rounded-2xl bg-white/10 border border-white/20 text-white text-sm font-medium hover:bg-white/20 active:scale-95 transition-all"
+          >
+            ✍️
+          </button>
+        </div>
+      </div>
+
+      {/* 우측 인디케이터 */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+        {appState.stories.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentIndex(i)}
+            className={`w-1 rounded-full transition-all duration-300 ${
+              i === currentIndex ? "h-8 bg-white" : "h-2 bg-white/30"
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* 스와이프 힌트 */}
+      {currentIndex === 0 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <p className="text-white/20 text-xs tracking-widest animate-pulse">
+            ↕ 스와이프
+          </p>
+        </div>
       )}
-    </>
+    </div>
   );
 }
