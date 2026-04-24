@@ -54,16 +54,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     let cancelled = false;
 
-    // 3초 안에 init 안 끝나면 loading 강제 해제
+    // 5초 안에 init 안 끝나면 loading 강제 해제
     const safetyTimer = setTimeout(() => {
       if (!cancelled) {
         console.warn("[AuthProvider] init timeout — loading 강제 해제");
         setLoading(false);
       }
-    }, 3000);
+    }, 5000);
 
     async function init() {
       try {
+        // lock 충돌 방지: 클라이언트 초기화 완료 후 호출
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const { data: { session } } = await supabase.auth.getSession();
         if (cancelled) return;
 
