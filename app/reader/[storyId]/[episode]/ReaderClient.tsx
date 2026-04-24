@@ -13,8 +13,6 @@ import LikeFloating from "@/app/components/LikeFloating";
 import { useMyNickname } from "@/app/components/AuthorModeToggle";
 import { supabase } from "@/lib/supabase";
 
-const VOTE_NICKNAME_KEY = "whatif_nickname";
-
 export default function ReaderClient() {
   const params = useParams();
   const router = useRouter();
@@ -35,34 +33,26 @@ export default function ReaderClient() {
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
   const { nickname: myNickname } = useMyNickname();
 
-  // 현재 에피소드 투표 여부 조회 — 에피소드 변경 시 및 VotePanel 닫힐 때 호출
-  const checkVoteStatus = useCallback((episode: number) => {
-    console.log("[checkVoteStatus] called, episode:", episode);
-    let nick = "";
-    try { nick = localStorage.getItem(VOTE_NICKNAME_KEY) ?? ""; } catch {}
-    if (!nick) {
+  // 에피소드 변경 시 투표 여부 재조회
+  useEffect(() => {
+    const nickname = localStorage.getItem("whatif_nickname");
+    console.log("[checkVoteStatus] called, nickname:", nickname, "episodeIndex:", episodeIndex);
+    if (!nickname) {
       setHasVotedCurrentEpisode(false);
-      console.log("[hasVoted check] 닉네임 없음 → false");
       return;
     }
-    console.log("[hasVoted check] nickname:", nick, "episode:", episode);
     supabase
       .from("votes")
       .select("id")
       .eq("story_id", storyId)
-      .eq("episode", episode)
-      .eq("nickname", nick)
+      .eq("episode", episodeIndex)
+      .eq("nickname", nickname)
       .limit(1)
-      .then(({ data }) => {
-        console.log("[hasVoted result]", data);
-        const voted = (data?.length ?? 0) > 0;
-        setHasVotedCurrentEpisode(voted);
+      .then(({ data, error }) => {
+        console.log("[checkVoteStatus] result:", data, error);
+        setHasVotedCurrentEpisode(!!(data && data.length > 0));
       });
-  }, [storyId]);
-
-  useEffect(() => {
-    checkVoteStatus(episodeIndex);
-  }, [episodeIndex, checkVoteStatus]);
+  }, [storyId, episodeIndex]);
 
   // 렌더마다 동기 업데이트 — 스와이프 핸들러 클로저에서 최신값 읽기 위해
   const anyPanelOpenRef = useRef(false);
@@ -867,11 +857,7 @@ export default function ReaderClient() {
           storyId={storyId}
           episode={episodeIndex}
           universes={story.universes.map((u) => ({ id: u.id, label: u.label, isMain: u.isMain }))}
-          onClose={() => {
-            setShowVotePanel(false);
-            // VotePanel 닫힐 때 투표 여부 재조회 (투표 후 버튼 텍스트 갱신)
-            checkVoteStatus(episodeIndex);
-          }}
+          onClose={() => setShowVotePanel(false)}
           onTransferComplete={handleTransferComplete}
           onVoteCast={() => setHasVotedCurrentEpisode(true)}
         />
