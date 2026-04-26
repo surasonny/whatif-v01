@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import LikeFloating from "@/app/components/LikeFloating";
 import EventFeed from "@/app/components/EventFeed";
 
-const CHALLENGE_THRESHOLD = 1.5;
+const CHALLENGE_THRESHOLD = 0.4;
 const TRANSFER_THRESHOLD  = 2.0;
 
 const GENRE_COLORS: Record<string, string> = {
@@ -40,6 +40,17 @@ function computeBattle(story: Story): Omit<BattleInfo, "battleRank"> {
     if (likes > topLikes) { topLikes = likes; topLabel = u.label; }
   }
   const isActive = mainLikes > 0 && topLikes >= mainLikes * CHALLENGE_THRESHOLD;
+  console.log("[computeBattle]", story.title, {
+    universes: story.universes.map((u) => ({
+      label: u.label,
+      isMain: u.isMain,
+      likes: u.episodes.reduce((s, e) => s + e.likes, 0),
+    })),
+    mainLikes,
+    topLikes,
+    threshold: mainLikes * CHALLENGE_THRESHOLD,
+    isActive,
+  });
   return {
     battleStatus: isActive ? "active" : "none",
     mainLikes,
@@ -175,7 +186,7 @@ export default function HomeFeed() {
   const story        = sortedStories[currentIndex];
   const mainUniverse = story.universes.find((u) => u.isMain) ?? story.universes[0];
   const totalEpisodes = mainUniverse.episodes.length;
-  const totalLikes   = mainUniverse.episodes.reduce((s, e) => s + e.likes, 0);
+  const totalLikes   = story.universes.reduce((sum, u) => sum + u.episodes.reduce((s, e) => s + e.likes, 0), 0);
   const firstGenre   = story.genre.split("/")[0];
   const genreColor   = GENRE_COLORS[firstGenre] || "#6b7280";
   const bgImageUrl: string | null = (story as any).coverImageUrl ?? mainUniverse.episodes[0]?.coverImageUrl ?? null;
@@ -305,10 +316,20 @@ export default function HomeFeed() {
             )}
           </div>
 
-          {/* 1위 레이블 */}
+          {/* 순위 레이블 */}
           {story.battleRank === 1 && (
             <p className="text-xs font-bold mb-1" style={{ color: "rgba(249,115,22,0.9)" }}>
               🔥 지금 가장 뜨거운 작품
+            </p>
+          )}
+          {story.battleRank === 2 && (
+            <p className="text-xs font-bold mb-1" style={{ color: "rgba(249,115,22,0.7)" }}>
+              ⚔️ 정사대전 2위
+            </p>
+          )}
+          {story.battleRank === 3 && (
+            <p className="text-xs font-bold mb-1" style={{ color: "rgba(249,115,22,0.5)" }}>
+              ⚔️ 정사대전 3위
             </p>
           )}
 
