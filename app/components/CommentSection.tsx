@@ -1,195 +1,161 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Comment } from "@/lib/types";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "./AuthProvider";
+import { supabase } from "@/lib/supabase";
 
-const NICKNAME_KEY = "whatif_nickname";
-
-interface Props {
-  comments: Comment[];
-  storyId: string;
-  universeId: string;
-  episodeIndex: number;
-  allUniverses?: { id: string; label: string }[];
-  onAddComment: (content: string, author: string) => void;
-  onLikeComment: (commentId: string) => void;
-  onDislikeComment: (commentId: string) => void;
+interface Comment {
+  id: string;
+  story_id: string;
+  episode: number;
+  universe_id: string;
+  nickname: string;
+  user_id: string | null;
+  content: string;
+  likes: number;
+  dislikes: number;
+  created_at: string;
 }
 
-export default function CommentSection({
-  comments,
-  storyId,
-  universeId,
-  episodeIndex,
-  allUniverses,
-  onAddComment,
-  onLikeComment,
-  onDislikeComment,
-}: Props) {
+interface Props {
+  storyId: string;
+  episode: number;
+  universeId: string;
+}
+
+const BEST_THRESHOLD = 5;
+
+export default function CommentSection({ storyId, episode, universeId }: Props) {
+  const { user, nickname: authNickname, openAuthModal } = useAuth();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
-  const [authorName, setAuthorName] = useState("");
-  const [filterUniverseId, setFilterUniverseId] = useState<string | "all">("all");
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadComments = useCallback(async () => {
+    const { data } = await supabase
+      .from("comments")
+      .select("*")
+      .eq("story_id", storyId)
+      .eq("episode", episode)
+      .order("created_at", { ascending: false });
+    if (data) setComments(data as Comment[]);
+    setLoading(false);
+  }, [storyId, episode]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(NICKNAME_KEY);
-      if (saved) setAuthorName(saved);
-    } catch {}
-  }, []);
+    setLoading(true);
+    loadComments();
+  }, [loadComments]);
 
-  // 유니버스 변경 시 필터 초기화
-  useEffect(() => {
-    setFilterUniverseId("all");
-  }, [universeId]);
-
-  const handleAuthorChange = (value: string) => {
-    setAuthorName(value);
-    try {
-      localStorage.setItem(NICKNAME_KEY, value);
-    } catch {}
+  const handleSubmit = async () => {
+    if (!user || !text.trim() || submitting) return;
+    setSubmitting(true);
+    const nickname = authNickname || user.email?.split("@")[0] || "익명";
+    const { error } = await supabase.from("comments").insert({
+      story_id: storyId,
+      episode,
+      universe_id: universeId,
+      nickname,
+      user_id: user.id,
+      content: text.trim(),
+    });
+    if (!error) {
+      setText("");
+      await loadComments();
+    }
+    setSubmitting(false);
   };
 
-  // 현재 에피소드의 전체 댓글 (유니버스 무관)
-  const allEpisodeComments = comments.filter(
-    (c) => (c as any).storyId === storyId && c.episodeIndex === episodeIndex
-  );
-
-  // 필터 적용
-  const filtered =
-    filterUniverseId === "all"
-      ? allEpisodeComments
-      : allEpisodeComments.filter((c) => c.universeId === filterUniverseId);
-
-  // 베스트: 좋아요 3개 이상
-  const best = filtered.filter((c) => c.likes >= 3);
-  const normal = filtered.filter((c) => c.likes < 3);
-
-  const sortedBest = [...best].sort((a, b) => b.likes - a.likes);
-  const sortedNormal = [...normal].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
-  const handleSubmit = () => {
-    if (!text.trim()) return;
-    onAddComment(text.trim(), authorName.trim());
-    setText("");
+  const handleLike = async (c: Comment) => {
+    setComments((prev) => prev.map((x) => x.id === c.id ? { ...x, likes: x.likes + 1 } : x));
+    await supabase.from("comments").update({ likes: c.likes + 1 }).eq("id", c.id);
   };
 
-  // 유니버스 탭 표시 여부 — 2개 이상일 때만
-  const showUniverseTabs = allUniverses && allUniverses.length > 1;
+  const handleDislike = async (c: Comment) => {
+    setComments((prev) => prev.map((x) => x.id === c.id ? { ...x, dislikes: x.dislikes + 1 } : x));
+    await supabase.from("comments").update({ dislikes: c.dislikes + 1 }).eq("id", c.id);
+  };
+
+  const handleDelete = async (commentId: string) => {
+    if (!user) return;
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    await supabase.from("comments").delete().eq("id", commentId).eq("user_id", user.id);
+  };
+
+  const best   = comments.filter((c) => c.likes >= BEST_THRESHOLD).sort((a, b) => b.likes - a.likes);
+  const normal = comments.filter((c) => c.likes < BEST_THRESHOLD);
 
   return (
     <div className="mt-8 border-t border-white/10 pt-8">
-      <div className="flex items-center justify-between mb-6">
-        <p className="text-white/40 text-xs tracking-widest">
-          댓글 {allEpisodeComments.length}
-        </p>
-        {showUniverseTabs && (
-          <p className="text-white/20 text-xs">
-            이 화 전체 댓글
-          </p>
-        )}
-      </div>
-
-      {/* 유니버스 필터 탭 */}
-      {showUniverseTabs && (
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-          <button
-            onClick={() => setFilterUniverseId("all")}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs border transition-all ${
-              filterUniverseId === "all"
-                ? "bg-white/10 border-white/30 text-white/80"
-                : "border-white/10 text-white/30 hover:border-white/20"
-            }`}
-          >
-            전체
-          </button>
-          {allUniverses.map((u) => (
-            <button
-              key={u.id}
-              onClick={() => setFilterUniverseId(u.id)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs border transition-all ${
-                filterUniverseId === u.id
-                  ? "bg-white/10 border-white/30 text-white/80"
-                  : "border-white/10 text-white/30 hover:border-white/20"
-              }`}
-            >
-              {u.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <p className="text-white/40 text-xs tracking-widest mb-6">댓글 {comments.length}개</p>
 
       {/* 댓글 입력 */}
       <div className="mb-8">
-        <input
-          type="text"
-          placeholder="닉네임 (선택)"
-          value={authorName}
-          onChange={(e) => handleAuthorChange(e.target.value)}
-          className="w-full bg-transparent border-b border-white/10 text-white/60 text-sm py-2 mb-3 outline-none placeholder:text-white/20 focus:border-white/30 transition-colors"
-        />
-        <textarea
-          placeholder="이 화에 대한 생각을 남겨보세요..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={3}
-          className="w-full bg-white/5 rounded-xl text-white/80 text-sm p-4 outline-none resize-none placeholder:text-white/20 focus:bg-white/8 transition-colors"
-        />
-        <div className="flex justify-end mt-2">
+        {!user ? (
           <button
-            onClick={handleSubmit}
-            disabled={!text.trim()}
-            className="px-5 py-2 rounded-full bg-white/10 text-white/60 text-sm font-medium disabled:opacity-30 hover:bg-white/20 hover:text-white transition-all active:scale-95"
+            onClick={openAuthModal}
+            className="w-full py-3 rounded-xl border border-white/10 text-white/30 text-sm hover:border-white/20 hover:text-white/50 transition-all"
           >
-            등록
+            로그인하면 댓글을 쓸 수 있습니다
           </button>
-        </div>
+        ) : (
+          <>
+            <textarea
+              placeholder="이 화에 대한 생각을 남겨보세요..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={3}
+              className="w-full bg-white/5 rounded-xl text-white/80 text-sm p-4 outline-none resize-none placeholder:text-white/20 transition-colors"
+            />
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-white/30 text-xs">{authNickname || "익명"}</span>
+              <button
+                onClick={handleSubmit}
+                disabled={!text.trim() || submitting}
+                className="px-5 py-2 rounded-full bg-white/10 text-white/60 text-sm font-medium disabled:opacity-30 hover:bg-white/20 hover:text-white transition-all active:scale-95"
+              >
+                {submitting ? "..." : "등록"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* 베스트 댓글 */}
-      {sortedBest.length > 0 && (
+      {loading && (
+        <p className="text-white/20 text-sm text-center py-8">불러오는 중...</p>
+      )}
+
+      {!loading && best.length > 0 && (
         <div className="mb-6">
-          <p className="text-yellow-400/60 text-xs tracking-widest mb-3">
-            ★ 베스트 댓글
-          </p>
-          {sortedBest.map((c) => (
+          <p className="text-amber-400/60 text-xs tracking-widest mb-3">👑 베스트 댓글</p>
+          {best.map((c) => (
             <CommentItem
               key={c.id}
               comment={c}
-              onLike={() => onLikeComment(c.id)}
-              onDislike={() => onDislikeComment(c.id)}
+              currentUserId={user?.id}
               isBest
-              universeLabel={
-                showUniverseTabs
-                  ? allUniverses?.find((u) => u.id === c.universeId)?.label
-                  : undefined
-              }
+              onLike={() => handleLike(c)}
+              onDislike={() => handleDislike(c)}
+              onDelete={() => handleDelete(c.id)}
             />
           ))}
         </div>
       )}
 
-      {/* 댓글 없음 */}
-      {filtered.length === 0 && (
-        <p className="text-white/20 text-sm text-center py-8">
-          첫 번째 댓글을 남겨보세요.
-        </p>
+      {!loading && comments.length === 0 && (
+        <p className="text-white/20 text-sm text-center py-8">첫 번째 댓글을 남겨보세요.</p>
       )}
 
-      {/* 일반 댓글 */}
-      {sortedNormal.map((c) => (
+      {!loading && normal.map((c) => (
         <CommentItem
           key={c.id}
           comment={c}
-          onLike={() => onLikeComment(c.id)}
-          onDislike={() => onDislikeComment(c.id)}
+          currentUserId={user?.id}
           isBest={false}
-          universeLabel={
-            showUniverseTabs
-              ? allUniverses?.find((u) => u.id === c.universeId)?.label
-              : undefined
-          }
+          onLike={() => handleLike(c)}
+          onDislike={() => handleDislike(c)}
+          onDelete={() => handleDelete(c.id)}
         />
       ))}
     </div>
@@ -198,44 +164,49 @@ export default function CommentSection({
 
 function CommentItem({
   comment,
+  currentUserId,
+  isBest,
   onLike,
   onDislike,
-  isBest,
-  universeLabel,
+  onDelete,
 }: {
   comment: Comment;
+  currentUserId?: string;
+  isBest: boolean;
   onLike: () => void;
   onDislike: () => void;
-  isBest: boolean;
-  universeLabel?: string;
+  onDelete: () => void;
 }) {
+  const isOwner = !!currentUserId && comment.user_id === currentUserId;
+
   return (
     <div
       className={`mb-4 p-4 rounded-xl ${
-        isBest
-          ? "bg-yellow-400/5 border border-yellow-400/20"
-          : "bg-white/5"
+        isBest ? "bg-amber-400/5 border border-amber-400/20" : "bg-white/5"
       }`}
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-white/50 text-xs font-medium">
-            {comment.author || "익명"}
-          </span>
-          {isBest && comment.likes >= 10 && (
+          <span className="text-white/50 text-xs font-medium">{comment.nickname || "익명"}</span>
+          {isBest && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-amber-400/15 border border-amber-400/20 text-amber-400/70">
-              🏆 흐름을 바꿨다
-            </span>
-          )}
-          {universeLabel && (
-            <span className="text-white/20 text-xs px-1.5 py-0.5 rounded bg-white/5">
-              {universeLabel}
+              👑 베스트
             </span>
           )}
         </div>
-        <span className="text-white/20 text-xs">
-          {new Date(comment.createdAt).toLocaleDateString("ko-KR")}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-white/20 text-xs">
+            {new Date(comment.created_at).toLocaleDateString("ko-KR")}
+          </span>
+          {isOwner && (
+            <button
+              onClick={onDelete}
+              className="text-white/20 text-xs hover:text-red-400/70 transition-colors"
+            >
+              삭제
+            </button>
+          )}
+        </div>
       </div>
       <p className="text-white/80 text-sm leading-6 mb-3">{comment.content}</p>
       <div className="flex items-center gap-3">

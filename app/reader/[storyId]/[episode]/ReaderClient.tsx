@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AppState, Story, Universe, Episode, Comment, MainHistory } from "@/lib/types";
+import { AppState, Story, Universe, Episode, MainHistory } from "@/lib/types";
 import { saveState, loadState, deleteEpisode, deleteStory, checkCanonWar } from "@/lib/store";
 import CommentSection from "@/app/components/CommentSection";
 import SnapshotCard from "@/app/components/SnapshotCard";
@@ -282,65 +282,6 @@ export default function ReaderClient() {
     import("@/lib/supabaseStore").then(({ saveStoryToSupabase }) => {
       const updatedStory = updated.stories.find((s: any) => s.id === storyId);
       if (updatedStory) saveStoryToSupabase(updatedStory);
-    });
-  };
-
-  const handleAddComment = (content: string, author: string) => {
-    if (!appState) return;
-    const story = appState.stories.find((s) => s.id === storyId);
-    if (!story) return;
-    const universe = story.universes[universeIndex];
-    const newComment: Comment = {
-      id: `c-${Date.now()}`,
-      storyId,
-      universeId: universe.id,
-      episodeIndex,
-      author,
-      content,
-      likes: 0,
-      dislikes: 0,
-      createdAt: new Date().toISOString(),
-    };
-    const updated: AppState = {
-      ...appState,
-      comments: [...appState.comments, newComment],
-    };
-    setAppState(updated);
-    saveState(updated);
-    import("@/lib/supabaseStore").then(({ saveCommentToSupabase }) => {
-      saveCommentToSupabase(newComment);
-    });
-  };
-
-  const handleLikeComment = (commentId: string) => {
-    if (!appState) return;
-    const updated: AppState = {
-      ...appState,
-      comments: appState.comments.map((c) =>
-        c.id === commentId ? { ...c, likes: c.likes + 1 } : c
-      ),
-    };
-    setAppState(updated);
-    saveState(updated);
-    import("@/lib/supabaseStore").then(({ saveCommentToSupabase }) => {
-      const updatedComment = updated.comments.find((c: any) => c.id === commentId);
-      if (updatedComment) saveCommentToSupabase(updatedComment);
-    });
-  };
-
-  const handleDislikeComment = (commentId: string) => {
-    if (!appState) return;
-    const updated: AppState = {
-      ...appState,
-      comments: appState.comments.map((c) =>
-        c.id === commentId ? { ...c, dislikes: c.dislikes + 1 } : c
-      ),
-    };
-    setAppState(updated);
-    saveState(updated);
-    import("@/lib/supabaseStore").then(({ saveCommentToSupabase }) => {
-      const updatedComment = updated.comments.find((c: any) => c.id === commentId);
-      if (updatedComment) saveCommentToSupabase(updatedComment);
     });
   };
 
@@ -732,14 +673,9 @@ export default function ReaderClient() {
               )}
 
               <CommentSection
-                comments={appState.comments}
                 storyId={storyId}
+                episode={episodeIndex}
                 universeId={universe.id}
-                episodeIndex={episodeIndex}
-                allUniverses={story.universes.map((u) => ({ id: u.id, label: u.label }))}
-                onAddComment={handleAddComment}
-                onLikeComment={handleLikeComment}
-                onDislikeComment={handleDislikeComment}
               />
             </div>
           </div>
