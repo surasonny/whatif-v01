@@ -33,6 +33,8 @@ export default function ReaderClient() {
   const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
   const { user, nickname: authNickname, authLoading, openAuthModal } = useAuth();
+  // early return 이전에 항상 찍히는 로그 — auth 상태 확인용
+  console.log("[Author Check - render] user.id:", user?.id, "| authLoading:", authLoading);
 
   // 에피소드 변경 또는 로그인 상태 변경 시 투표 여부 재조회
   useEffect(() => {
@@ -447,6 +449,9 @@ export default function ReaderClient() {
   const totalUniverses     = story.universes.length;
   const canRemix           = episode.remixAllowed;
   const isMyStory          = !authLoading && !!user && !!story.author_id && story.author_id === user.id;
+  console.log("[Author Check] user.id:", user?.id);
+  console.log("[Author Check] story.author_id:", story?.author_id);
+  console.log("[Author Check] isMyStory:", isMyStory);
 
   const headerBadge = (() => {
     if (totalUniverses <= 1) return null;
