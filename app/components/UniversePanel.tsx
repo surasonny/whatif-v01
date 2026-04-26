@@ -20,7 +20,6 @@ interface Props {
   onCanonTransferred?: (fromLabel: string, toLabel: string) => void;
   onShowVote?: (universeId: string) => void;
   onLike?: (universeId: string) => void;
-  currentEpisode?: number;
   hasVoted?: boolean;
 }
 
@@ -35,7 +34,6 @@ export default function UniversePanel({
   onCanonTransferred,
   onShowVote,
   onLike,
-  currentEpisode = 0,
   hasVoted = false,
 }: Props) {
   const { user, openAuthModal } = useAuth();
@@ -448,8 +446,8 @@ export default function UniversePanel({
                         </div>
                       )}
 
-                      {/* 투표 버튼 — 비정사 + 150% 이상 + 분기점 이후 */}
-                      {!isCurrentMain && isChallenger150 && onShowVote && !isConfirming && currentEpisode >= (universe.remixedFromEpisode ?? 0) && (
+                      {/* 투표 버튼 — 비정사 */}
+                      {!isCurrentMain && onShowVote && !isConfirming && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
