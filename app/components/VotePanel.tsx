@@ -33,7 +33,7 @@ export default function VotePanel({
   onTransferComplete,
   onVoteCast,
 }: Props) {
-  const { user, nickname: authNickname, loading: authLoading, openAuthModal } = useAuth();
+  const { user, nickname: authNickname, authLoading, openAuthModal } = useAuth();
 
   const [phase, setPhase]           = useState<Phase>("no-auth");
   const [chosenId, setChosenId]     = useState<string | null>(null);

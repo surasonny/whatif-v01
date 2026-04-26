@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
@@ -14,70 +8,73 @@ import AuthModal from "./AuthModal";
 type AuthContextType = {
   user: User | null;
   nickname: string;
-  loading: boolean;
-  signOut: () => Promise<void>;
+  authLoading: boolean;
   openAuthModal: () => void;
+  signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   nickname: "",
-  loading: true,
-  signOut: async () => {},
+  authLoading: false,
   openAuthModal: () => {},
+  signOut: async () => {},
 });
 
 export function useAuth() {
   return useContext(AuthContext);
 }
 
-function nickFromUser(user: User): string {
+function getNickname(u: User): string {
   return (
-    (user.user_metadata?.nickname as string | undefined) ??
-    user.email?.split("@")[0] ??
+    (u.user_metadata?.nickname as string | undefined) ??
+    u.email?.split("@")[0] ??
     "익명"
   );
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser]           = useState<User | null>(null);
-  const [nickname, setNickname]   = useState("");
-  const [loading, setLoading]     = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [user, setUser]             = useState<User | null>(null);
+  const [nickname, setNickname]     = useState("");
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showModal, setShowModal]   = useState(false);
 
   useEffect(() => {
-    // 초기 세션 — 성공/실패 무관하게 finally에서 loading 해제
+    // 초기 세션 확인 — 한 번만
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        const u = session?.user ?? null;
-        setUser(u);
-        if (u) setNickname(nickFromUser(u));
+        if (session?.user) {
+          setUser(session.user);
+          setNickname(getNickname(session.user));
+        }
+        setAuthLoading(false);
       })
-      .catch((e) => {
-        console.error("[AuthProvider] getSession 실패:", e);
-      })
-      .finally(() => {
-        setLoading(false);
+      .catch(() => {
+        setAuthLoading(false);
       });
 
-    // 이후 상태 변화 (로그인/로그아웃)
+    // 이후 변경 감지
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        const u = session?.user ?? null;
-        setUser(u);
-        setNickname(u ? nickFromUser(u) : "");
-        setLoading(false);
+        setUser(session?.user ?? null);
+        setNickname(session?.user ? getNickname(session.user) : "");
+        setAuthLoading(false);
       },
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut  = useCallback(async () => { await supabase.auth.signOut(); }, []);
-  const openAuthModal  = useCallback(() => setShowModal(true), []);
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setNickname("");
+  }, []);
+
+  const openAuthModal = useCallback(() => setShowModal(true), []);
 
   return (
-    <AuthContext.Provider value={{ user, nickname, loading, signOut: handleSignOut, openAuthModal }}>
+    <AuthContext.Provider value={{ user, nickname, authLoading, openAuthModal, signOut: handleSignOut }}>
       {children}
       {showModal && (
         <AuthModal

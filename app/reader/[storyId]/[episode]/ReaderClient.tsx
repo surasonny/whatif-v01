@@ -33,7 +33,7 @@ export default function ReaderClient() {
   const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
   const { nickname: myNickname } = useMyNickname();
-  const { user, nickname: authNickname, loading: authLoading, openAuthModal } = useAuth();
+  const { user, nickname: authNickname, authLoading, openAuthModal } = useAuth();
 
   // 에피소드 변경 또는 로그인 상태 변경 시 투표 여부 재조회
   useEffect(() => {

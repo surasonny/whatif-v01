@@ -105,7 +105,7 @@ async function loadWeeklyChampion(stories: Story[]): Promise<string | null> {
 // ── HomeFeed ──────────────────────────────────────────────────────
 export default function HomeFeed() {
   const router = useRouter();
-  const { user, nickname: authNickname, loading: authLoading, signOut, openAuthModal } = useAuth();
+  const { user, nickname: authNickname, authLoading, signOut, openAuthModal } = useAuth();
 
   const [appState, setAppState]         = useState<AppState | null>(null);
   const [sortedStories, setSortedStories] = useState<SortedStory[]>([]);
