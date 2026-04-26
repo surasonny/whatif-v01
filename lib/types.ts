@@ -32,6 +32,7 @@ export type Story = {
   title: string
   genre: string
   author: string
+  author_id?: string
   hook: string
   coverColor: string
   coverImageUrl?: string

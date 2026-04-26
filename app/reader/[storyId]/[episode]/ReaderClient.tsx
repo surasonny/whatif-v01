@@ -10,7 +10,6 @@ import UniversePanel from "@/app/components/UniversePanel";
 import CanonWarAlert from "@/app/components/CanonWarAlert";
 import VotePanel from "@/app/components/VotePanel";
 import LikeFloating from "@/app/components/LikeFloating";
-import { useMyNickname } from "@/app/components/AuthorModeToggle";
 import { useAuth } from "@/app/components/AuthProvider";
 import { supabase } from "@/lib/supabase";
 
@@ -33,7 +32,6 @@ export default function ReaderClient() {
   const [transferToast, setTransferToast]   = useState(false);
   const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
-  const { nickname: myNickname } = useMyNickname();
   const { user, nickname: authNickname, authLoading, openAuthModal } = useAuth();
 
   // 에피소드 변경 또는 로그인 상태 변경 시 투표 여부 재조회
@@ -448,7 +446,7 @@ export default function ReaderClient() {
   const totalEpisodes      = universe.episodes.length;
   const totalUniverses     = story.universes.length;
   const canRemix           = episode.remixAllowed;
-  const isMyStory          = myNickname && myNickname === story.author;
+  const isMyStory          = !authLoading && !!user && !!story.author_id && story.author_id === user.id;
 
   const headerBadge = (() => {
     if (totalUniverses <= 1) return null;
