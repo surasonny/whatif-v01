@@ -470,7 +470,7 @@ export default function ReaderClient() {
           {isMyStory && (
             <div className="flex items-center justify-end gap-1.5 px-6 pb-1">
               <button
-                onClick={() => router.push(`/write/${storyId}/${episodeIndex}`)}
+                onClick={() => router.push(`/edit/${storyId}/${episodeIndex}`)}
                 className="text-white/30 text-xs hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/30"
                 title="원고 수정"
               >
@@ -499,7 +499,7 @@ export default function ReaderClient() {
 
               {episodeIndex === totalEpisodes - 1 && (
                 <button
-                  onClick={() => router.push(`/write/${storyId}/new`)}
+                  onClick={() => router.push(`/write/${storyId}`)}
                   className="text-white/40 text-xs hover:text-white transition-colors px-1.5 py-1 rounded border border-white/10 hover:border-white/30"
                   title="새 화 추가"
                 >
