@@ -29,6 +29,7 @@ export default function ReaderClient() {
   const [showUniversePanel, setShowUniversePanel] = useState(false);
   const [canonAlert, setCanonAlert]         = useState<{ from: string; to: string } | null>(null);
   const [showVotePanel, setShowVotePanel]   = useState(false);
+  const [voteTargetId, setVoteTargetId]     = useState<string | null>(null);
   const [transferToast, setTransferToast]   = useState(false);
   const [likeFloats, setLikeFloats]         = useState<{ id: number; x: number; y: number }[]>([]);
   const [hasVotedCurrentEpisode, setHasVotedCurrentEpisode] = useState(false);
@@ -62,10 +63,10 @@ export default function ReaderClient() {
   anyPanelOpenRef.current = showVotePanel || showUniversePanel || showSnapshot || !!canonAlert;
 
   // 투표 패널 열기 — anyPanelOpenRef를 즉시 차단하여 touchend 타이밍 갭 방지
-  const handleShowVote = useCallback(() => {
+  const handleShowVote = useCallback((universeId: string) => {
     anyPanelOpenRef.current = true;
-    console.log("[handleShowVote] anyPanelOpenRef = true 설정");
     setShowUniversePanel(false);
+    setVoteTargetId(universeId);
     setShowVotePanel(true);
   }, []);
 
@@ -170,7 +171,6 @@ export default function ReaderClient() {
       const absY  = Math.abs(diffY);
 
       if (absX > absY && absX > 40) {
-        console.log("[Swipe] 에피소드 스와이프 실행 (touch) — anyPanelOpen:", anyPanelOpenRef.current);
         const currentUniverse = story.universes[universeIndex];
         const maxEpisode = currentUniverse.episodes.length - 1;
         if (diffX > 0) {
@@ -195,7 +195,6 @@ export default function ReaderClient() {
       const absY  = Math.abs(diffY);
 
       if (absX > absY && absX > 60) {
-        console.log("[Swipe] 에피소드 스와이프 실행 (mouse) — anyPanelOpen:", anyPanelOpenRef.current);
         const currentUniverse = story.universes[universeIndex];
         const maxEpisode = currentUniverse.episodes.length - 1;
         if (diffX > 0) {
@@ -206,7 +205,6 @@ export default function ReaderClient() {
       }
     };
 
-    // passive: false — preventDefault를 호출할 수 있어야 하므로
     window.addEventListener("touchstart", onTouchStart, { passive: false });
     window.addEventListener("touchend",   onTouchEnd,   { passive: false });
     window.addEventListener("mousedown",  onMouseDown);
@@ -852,7 +850,6 @@ export default function ReaderClient() {
           onCanonTransferred={(from, to) => setCanonAlert({ from, to })}
           onShowVote={handleShowVote}
           onLike={handleUniverseLike}
-          currentEpisode={episodeIndex}
           hasVoted={hasVotedCurrentEpisode}
         />
       )}
@@ -862,7 +859,7 @@ export default function ReaderClient() {
           storyId={storyId}
           episode={episodeIndex}
           universes={story.universes.map((u) => ({ id: u.id, label: u.label, isMain: u.isMain }))}
-          onClose={() => setShowVotePanel(false)}
+          onClose={() => { setShowVotePanel(false); setVoteTargetId(null); }}
           onTransferComplete={handleTransferComplete}
           onVoteCast={() => setHasVotedCurrentEpisode(true)}
         />

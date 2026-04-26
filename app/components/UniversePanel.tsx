@@ -446,12 +446,12 @@ export default function UniversePanel({
                         </div>
                       )}
 
-                      {/* 투표 버튼 — 비정사 */}
-                      {!isCurrentMain && onShowVote && !isConfirming && (
+                      {/* 투표 버튼 — 비정사 카드에 무조건 표시 (임시) */}
+                      {!isCurrentMain && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onShowVote(universe.id);
+                            onShowVote?.(universe.id);
                           }}
                           className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${
                             hasVoted
