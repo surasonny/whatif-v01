@@ -237,7 +237,7 @@ export default function UniversePanel({
 
               {/* 유니버스 카드들 */}
               {story.universes.map((universe: Universe, i: number) => {
-                const isCurrentMain = universe.isMain;
+                const isCurrentMain = universe.isMain === true;
                 const isSelected = i === currentUniverseIndex;
                 const isConfirming = confirmDeleteId === universe.id;
                 const score = Math.round(calcUniverseScore(universe, comments));
@@ -446,17 +446,18 @@ export default function UniversePanel({
                         </div>
                       )}
 
-                      {/* 투표 버튼 — 비정사 카드에 무조건 표시 (임시) */}
-                      {!isCurrentMain && (
+                      {/* 투표 버튼 — 비정사 + 현재 정사보다 likes 많을 때만 */}
+                      {!isCurrentMain && rawLikes > mainRawLikes && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onShowVote?.(universe.id);
                           }}
+                          style={{ backgroundColor: hasVoted ? "rgba(255,255,255,0.05)" : "rgba(251,191,36,0.15)" }}
                           className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition-all active:scale-95 ${
                             hasVoted
-                              ? "text-white/50 border-white/20 bg-white/5"
-                              : "text-amber-400 border-amber-400/50 bg-amber-400/8 hover:bg-amber-400/15 animate-pulse"
+                              ? "text-white/50 border-white/20"
+                              : "text-amber-400 border-amber-400/50 hover:bg-amber-400/20 animate-pulse"
                           }`}
                         >
                           {hasVoted ? "📊 투표 현황 보기" : "⚔️ 독자 투표 참여하기"}
