@@ -13,7 +13,7 @@ import AuthModal from "./AuthModal";
 
 type AuthContextType = {
   user: User | null;
-  nickname: string | null;
+  nickname: string;
   loading: boolean;
   signOut: () => Promise<void>;
   openAuthModal: () => void;
@@ -21,7 +21,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  nickname: null,
+  nickname: "",
   loading: true,
   signOut: async () => {},
   openAuthModal: () => {},
@@ -31,14 +31,8 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-async function fetchNickname(user: User): Promise<string> {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("nickname")
-    .eq("id", user.id)
-    .single();
+function nickFromUser(user: User): string {
   return (
-    profile?.nickname ??
     (user.user_metadata?.nickname as string | undefined) ??
     user.email?.split("@")[0] ??
     "익명"
@@ -47,78 +41,43 @@ async function fetchNickname(user: User): Promise<string> {
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]           = useState<User | null>(null);
-  const [nickname, setNickname]   = useState<string | null>(null);
+  const [nickname, setNickname]   = useState("");
   const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    // 5초 안에 init 안 끝나면 loading 강제 해제
-    const safetyTimer = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("[AuthProvider] init timeout — loading 강제 해제");
-        setLoading(false);
-      }
-    }, 5000);
-
-    async function init() {
-      try {
-        // lock 충돌 방지: 클라이언트 초기화 완료 후 호출
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        const { data: { session } } = await supabase.auth.getSession();
-        if (cancelled) return;
-
-        if (session?.user) {
-          setUser(session.user);
-          const nick = await fetchNickname(session.user);
-          if (!cancelled) setNickname(nick);
-        }
-      } catch (e) {
-        console.error("[AuthProvider] init 에러:", e);
-      } finally {
-        clearTimeout(safetyTimer);
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    init();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+    // 초기 세션 — 성공/실패 무관하게 finally에서 loading 해제
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
         const u = session?.user ?? null;
         setUser(u);
-        if (u) {
-          try {
-            const nick = await fetchNickname(u);
-            setNickname(nick);
-          } catch (e) {
-            console.error("[AuthProvider] onAuthStateChange 닉네임 조회 실패:", e);
-            setNickname(u.email?.split("@")[0] ?? "익명");
-          }
-        } else {
-          setNickname(null);
-        }
+        if (u) setNickname(nickFromUser(u));
+      })
+      .catch((e) => {
+        console.error("[AuthProvider] getSession 실패:", e);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+    // 이후 상태 변화 (로그인/로그아웃)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const u = session?.user ?? null;
+        setUser(u);
+        setNickname(u ? nickFromUser(u) : "");
+        setLoading(false);
       },
     );
 
-    return () => {
-      cancelled = true;
-      clearTimeout(safetyTimer);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
-
-  const openAuthModal = useCallback(() => setShowModal(true), []);
+  const handleSignOut  = useCallback(async () => { await supabase.auth.signOut(); }, []);
+  const openAuthModal  = useCallback(() => setShowModal(true), []);
 
   return (
-    <AuthContext.Provider
-      value={{ user, nickname, loading, signOut: handleSignOut, openAuthModal }}
-    >
+    <AuthContext.Provider value={{ user, nickname, loading, signOut: handleSignOut, openAuthModal }}>
       {children}
       {showModal && (
         <AuthModal
